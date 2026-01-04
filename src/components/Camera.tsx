@@ -62,7 +62,6 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
             let renderHeight = img.height;
             let paddingX = 0;
             let paddingY = 0;
-            let dateY = 0; // Y position for date
 
             const isPolaroid = selectedFilter.frameType === 'polaroid';
 
