@@ -6,31 +6,132 @@
     background: var(--bg-primary);
 }
 
-.viewfinder {
-    position: relative;
+.camera-container.edit-mode {
+    background: #000;
+    /* Darker for edit mode focus */
+}
+
+/* 1. Static Background (Capture Mode) */
+.static-background {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at center, #1a1f35 0%, #0a0b10 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.static-background::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+    opacity: 0.5;
+}
+
+.brand-text {
+    text-align: center;
+    z-index: 10;
+    opacity: 0.7;
+    animation: fadeIn 1s ease-out;
+}
+
+.brand-text h2 {
+    font-family: var(--font-arif);
+    font-size: 2.5rem;
+    color: var(--accent);
+    margin: 0;
+    font-weight: 400;
+}
+
+.brand-text p {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-top: 5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 0.7;
+        transform: translateY(0);
+    }
+}
+
+/* 2. Preview Container (Edit Mode) */
+.preview-container {
+    flex: 1;
+    position: relative;
     margin: 10px;
-    border-radius: 2px;
+    border-radius: 4px;
     overflow: hidden;
     background: #000;
     box-shadow: 0 0 0 1px var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.camera-video {
+.preview-image {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    /* Show full image uncropped */
 }
 
-/* Overlays */
-.grain-overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.1'/%3E%3C/svg%3E");
-    mix-blend-mode: overlay;
-    z-index: 10;
+/* Edit Controls & Actions */
+.edit-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 20px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--glass-border);
 }
+
+.action-buttons {
+    display: flex;
+    gap: 16px;
+    padding: 0 16px;
+}
+
+.action-buttons button {
+    flex: 1;
+    padding: 16px;
+    border-radius: 12px;
+    border: none;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.action-buttons button:active {
+    transform: scale(0.98);
+}
+
+.retake-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    border: 1px solid var(--glass-border) !important;
+}
+
+.save-btn {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    font-weight: 700;
+}
+
+
 
 .flash-effect {
     position: absolute;

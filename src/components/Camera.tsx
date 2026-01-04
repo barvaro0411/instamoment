@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useCamera } from '../hooks/useCamera';
+import { useState, useRef } from 'react';
 import { useFirebase } from '../hooks/useFirebase';
 import { FilterSelector } from './FilterSelector';
 import { vintageFilters, type VintageFilter } from '../lib/filters';
@@ -12,193 +11,166 @@ interface CameraProps {
 }
 
 export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
+    // State
     const [selectedFilter, setSelectedFilter] = useState<VintageFilter>(vintageFilters[0]);
-    // const [enableFlash, setEnableFlash] = useState(false);  <-- Removed
-    // const [isMirrored, setIsMirrored] = useState(true);     <-- Removed, but isMirrored was used in render. Hardcode to true?
-    // Wait, isMirrored is used in <video style={{ transform... }}>. 
-    // Since we removed the toggle, we should keep the state OR hardcode it. 
-    // User wants native first, but the background video is still there. 
-    // Let's hardcode it to true (mirrored) for better selfie experience without toggle.
-    const isMirrored = true;
-
+    const [previewImage, setPreviewImage] = useState<string | null>(null); // Raw image from camera
     const [photoCount, setPhotoCount] = useState(0);
-    const [lastPhoto, setLastPhoto] = useState<string | null>(null);
-    const [isProcessingNative, setIsProcessingNative] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
-    const {
-        videoRef,
-        canvasRef,
-        error,
-        startCamera,
-        switchCamera
-    } = useCamera();
+    // Refs
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
+    // Hooks
     const { uploadPhoto, isLoading } = useFirebase();
 
-    useEffect(() => {
-        startCamera();
-    }, []);
-
-    // handleCapture for web camera removed in Native First design
-    // Keeping logic if we want to re-enable, but for now commenting out/removing to fix lint
-    /*
-    const handleCapture = async () => {
-        // ...
-    };
-    */
-
-    const handleFilterChange = (filter: VintageFilter) => {
-        setSelectedFilter(filter);
-    };
-
+    // 1. Handle Native Capture (Input Change)
     const handleNativeCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        setIsProcessingNative(true);
+        setIsProcessing(true);
 
         const reader = new FileReader();
         reader.onload = (event) => {
-            if (!event.target?.result) return;
-            const img = new Image();
-            img.onload = async () => {
-                if (!canvasRef.current) return;
-                const canvas = canvasRef.current;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) return;
-
-                // Set canvas dimensions to match image
-                canvas.width = img.width;
-                canvas.height = img.height;
-
-                // Apply filter
-                ctx.filter = selectedFilter.cssFilter;
-                ctx.drawImage(img, 0, 0);
-
-                // Reset filter for other ops
-                ctx.filter = 'none';
-
-                // Get data URL
-                const photoData = canvas.toDataURL('image/jpeg', 0.85);
-                setLastPhoto(photoData);
-
-                // Upload
-                const success = await uploadPhoto(photoData, authorName, selectedFilter.id, eventId);
-                if (success) {
-                    setPhotoCount(prev => prev + 1);
-                    onPhotoTaken?.();
-                    setTimeout(() => setLastPhoto(null), 2000);
-                }
-                setIsProcessingNative(false);
-
-                // Reset input
-                e.target.value = '';
-            };
-            img.src = event.target.result as string;
+            if (event.target?.result) {
+                // Set preview to show Edit Mode
+                setPreviewImage(event.target.result as string);
+                setIsProcessing(false);
+            }
         };
         reader.readAsDataURL(file);
+
+        // Reset input to allow retaking same photo
+        e.target.value = '';
     };
 
-    if (error) {
+    // 2. Handle Save & Upload (Apply Filter)
+    const handleSave = async () => {
+        if (!previewImage || !canvasRef.current) return;
+
+        setIsProcessing(true);
+
+        const img = new Image();
+        img.onload = async () => {
+            if (!canvasRef.current) return;
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            // Set canvas dimensions
+            canvas.width = img.width;
+            canvas.height = img.height;
+
+            // Apply selected filter
+            ctx.filter = selectedFilter.cssFilter;
+            ctx.drawImage(img, 0, 0);
+            ctx.filter = 'none'; // Reset
+
+            // Get Data URL
+            const finalPhotoData = canvas.toDataURL('image/jpeg', 0.85);
+
+            // Upload
+            const success = await uploadPhoto(finalPhotoData, authorName, selectedFilter.id, eventId);
+
+            if (success) {
+                setPhotoCount(prev => prev + 1);
+                onPhotoTaken?.();
+                setPreviewImage(null); // Return to capture mode
+            }
+            setIsProcessing(false);
+        };
+        img.src = previewImage;
+    };
+
+    // 3. Handle Cancel/Retake
+    const handleRetake = () => {
+        setPreviewImage(null);
+        setIsProcessing(false);
+    };
+
+    // --- RENDER ---
+
+    // VIEW 1: PREVIEW / EDIT MODE
+    if (previewImage) {
         return (
-            <div className="camera-error">
-                <div className="error-icon">📷</div>
-                <p>{error}</p>
-                <button onClick={startCamera} className="retry-btn">
-                    Reintentar
-                </button>
+            <div className="camera-container edit-mode">
+                <div className="preview-container">
+                    <img
+                        src={previewImage}
+                        alt="Vista previa"
+                        style={{ filter: selectedFilter.cssFilter }}
+                        className="preview-image"
+                    />
+                    {/* Gradient Overlay Preview */}
+                    {selectedFilter.overlayGradient && (
+                        <div
+                            className="filter-overlay"
+                            style={{ background: selectedFilter.overlayGradient }}
+                        />
+                    )}
+                </div>
+
+                {/* Filter Selector in Edit Mode */}
+                <div className="edit-controls">
+                    <FilterSelector
+                        selectedFilter={selectedFilter.id}
+                        onFilterChange={setSelectedFilter}
+                    />
+
+                    <div className="action-buttons">
+                        <button className="retake-btn" onClick={handleRetake} disabled={isLoading || isProcessing}>
+                            ❌ Descartar
+                        </button>
+                        <button className="save-btn" onClick={handleSave} disabled={isLoading || isProcessing}>
+                            {isLoading || isProcessing ? 'Subiendo...' : '✅ Guardar'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Hidden canvas for processing */}
+                <canvas ref={canvasRef} style={{ display: 'none' }} />
             </div>
         );
     }
 
+    // VIEW 2: CAPTURE MODE (Native Only)
     return (
-        <div className="camera-container">
-            {/* Camera Viewfinder */}
-            <div className="viewfinder">
-                <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="camera-video"
-                    style={{
-                        filter: selectedFilter.cssFilter,
-                        transform: isMirrored ? 'scaleX(-1)' : 'none'
-                    }}
-                />
-
-                {/* Film grain overlay */}
-                <div className="grain-overlay"></div>
-
-                {/* Gradient overlay */}
-                {selectedFilter.overlayGradient && (
-                    <div
-                        className="filter-overlay"
-                        style={{ background: selectedFilter.overlayGradient }}
-                    />
-                )}
-
-                {/* Flash effect - Removed as unused for native first */}
-                {/* {showFlash && <div className="flash-effect" />} */}
-
-                {/* Last photo preview */}
-                {lastPhoto && (
-                    <div className="photo-preview">
-                        <img src={lastPhoto} alt="Última foto" />
-                        <span className="preview-label">✓ Subida</span>
-                    </div>
-                )}
-
-                {/* Loading indicator */}
-                {(isLoading || isProcessingNative) && (
-                    <div className="loading-overlay">
-                        <div className="loading-spinner"></div>
-                        <span>{isProcessingNative ? 'Procesando...' : 'Subiendo...'}</span>
-                    </div>
-                )}
+        <div className="camera-container capture-mode">
+            {/* Elegant Static Background */}
+            <div className="static-background">
+                <div className="brand-text">
+                    <h2>InstaMoment</h2>
+                    <p>Captura el momento</p>
+                </div>
             </div>
-
-            {/* Hidden canvas for capture */}
-            <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-            {/* Filter selector */}
-            <FilterSelector
-                selectedFilter={selectedFilter.id}
-                onFilterChange={handleFilterChange}
-            />
 
             {/* Controls */}
             <div className="camera-controls native-first">
-                {/* Secondary Web Controls (Small) - Empty for spacing/centering */}
-                <div className="secondary-controls left">
-                    {/* Flash and Mirror buttons removed as requested to prioritize Native Camera app */}
-                </div>
+                {/* Secondary Left (Empty/Placeholder) */}
+                <div className="secondary-controls left"></div>
 
                 {/* Primary Native Shutter */}
                 <div className="primary-shutter-container">
                     <label
                         htmlFor="native-camera-input"
                         className="native-shutter-btn"
-                        title="Tomar Foto (Cámara Nativa)"
+                        title="Tomar Foto"
                     >
                         <div className="shutter-icon">📸</div>
                     </label>
                     <span className="shutter-label">TOCA PARA FOTO</span>
                 </div>
 
-                {/* Secondary Web Controls (Right) */}
+                {/* Secondary Right (Count) */}
                 <div className="secondary-controls right">
                     <div className="photo-counter">
                         <span className="count">{photoCount}</span>
                         <span className="label">fotos</span>
                     </div>
-                    <button className="control-btn switch-btn" onClick={switchCamera}>
-                        �
-                    </button>
                 </div>
             </div>
 
-            {/* Hidden Native Camera Input */}
+            {/* Hidden Input */}
             <input
                 id="native-camera-input"
                 type="file"
@@ -207,6 +179,14 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
                 style={{ display: 'none' }}
                 onChange={handleNativeCapture}
             />
+
+            {/* Loading Overlay */}
+            {isProcessing && (
+                <div className="loading-overlay">
+                    <div className="loading-spinner"></div>
+                    <span>Procesando...</span>
+                </div>
+            )}
         </div>
     );
 };
