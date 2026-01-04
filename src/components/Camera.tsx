@@ -36,33 +36,13 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
         startCamera();
     }, []);
 
+    // handleCapture for web camera removed in Native First design
+    // Keeping logic if we want to re-enable, but for now commenting out/removing to fix lint
+    /*
     const handleCapture = async () => {
-        if (!isReady || isLoading) return;
-
-        // Flash effect
-        if (enableFlash) {
-            setShowFlash(true);
-            setTimeout(() => setShowFlash(false), 150);
-        }
-
-        // Capture photo with filter
-        const photoData = capturePhoto(selectedFilter.cssFilter, isMirrored);
-
-        if (photoData) {
-            setLastPhoto(photoData);
-
-            // Upload to Firebase
-            const success = await uploadPhoto(photoData, authorName, selectedFilter.id, eventId);
-
-            if (success) {
-                setPhotoCount(prev => prev + 1);
-                onPhotoTaken?.();
-
-                // Clear preview after short delay
-                setTimeout(() => setLastPhoto(null), 2000);
-            }
-        }
+        // ...
     };
+    */
 
     const handleFilterChange = (filter: VintageFilter) => {
         setSelectedFilter(filter);
@@ -185,12 +165,13 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
             />
 
             {/* Controls */}
-            <div className="camera-controls">
-                <div style={{ display: 'flex', gap: '16px' }}>
+            <div className="camera-controls native-first">
+                {/* Secondary Web Controls (Small) */}
+                <div className="secondary-controls left">
                     <button
                         className={`control-btn ${enableFlash ? 'active' : ''}`}
                         onClick={() => setEnableFlash(!enableFlash)}
-                        title="Flash"
+                        title="Flash (Web)"
                     >
                         {enableFlash ? '⚡' : '🌩️'}
                     </button>
@@ -203,31 +184,27 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
                     </button>
                 </div>
 
-                <div style={{ position: 'relative' }}>
-                    <button
-                        className={`shutter-btn ${isLoading ? 'disabled' : ''}`}
-                        onClick={handleCapture}
-                        disabled={!isReady || isLoading}
-                    >
-                        <div className="shutter-inner"></div>
-                    </button>
-                </div>
-
-                <div className="photo-counter">
-                    <span className="count">{photoCount}</span>
-                    <span className="label">fotos</span>
-
-                    <button className="control-btn switch-btn" onClick={switchCamera} style={{ marginTop: '8px', fontSize: '1rem' }}>
-                        🔄
-                    </button>
+                {/* Primary Native Shutter */}
+                <div className="primary-shutter-container">
                     <label
                         htmlFor="native-camera-input"
-                        className="control-btn"
-                        style={{ marginTop: '4px', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        title="Usar Cámara Nativa (Flash Real)"
+                        className="native-shutter-btn"
+                        title="Tomar Foto (Cámara Nativa)"
                     >
-                        📸
+                        <div className="shutter-icon">📸</div>
                     </label>
+                    <span className="shutter-label">TOCA PARA FOTO</span>
+                </div>
+
+                {/* Secondary Web Controls (Right) */}
+                <div className="secondary-controls right">
+                    <div className="photo-counter">
+                        <span className="count">{photoCount}</span>
+                        <span className="label">fotos</span>
+                    </div>
+                    <button className="control-btn switch-btn" onClick={switchCamera}>
+                        �
+                    </button>
                 </div>
             </div>
 

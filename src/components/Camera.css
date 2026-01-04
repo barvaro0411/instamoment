@@ -86,70 +86,67 @@
     letter-spacing: 0.1em;
 }
 
-/* Controls Area */
-.camera-controls {
-    display: flex;
+/* Controls Area Native First */
+.camera-controls.native-first {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-around;
-    padding: 30px 20px;
+    padding: 20px 16px;
     background: var(--bg-secondary);
     border-top: 1px solid var(--glass-border);
+    gap: 12px;
 }
 
-/* Minimalist Shutter Button */
-.shutter-btn {
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    background: transparent;
-    border: 2px solid var(--text-primary);
-    padding: 4px;
-    cursor: pointer;
-    transition: transform 0.1s;
+.secondary-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
 }
 
-.shutter-btn:active:not(.disabled) {
-    transform: scale(0.95);
+/* Giant Native Button */
+.primary-shutter-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
 }
 
-.shutter-inner {
-    width: 100%;
-    height: 100%;
+.native-shutter-btn {
+    width: 96px;
+    height: 96px;
     border-radius: 50%;
     background: var(--text-primary);
-    transition: background 0.2s;
-}
-
-.shutter-btn.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Secondary Controls */
-.control-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    opacity: 0.5;
-    transition: all 0.2s;
-    filter: grayscale(1);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2), 0 10px 20px rgba(0, 0, 0, 0.5);
+    transition: transform 0.1s, box-shadow 0.2s;
+    border: 3px solid var(--bg-primary);
+    z-index: 50;
+    position: relative;
+    top: -10px;
+    /* Slight overlap or push up */
 }
 
-.control-btn:hover {
-    opacity: 0.8;
+.native-shutter-btn:active {
+    transform: scale(0.92);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
 }
 
-/* Active state for toggles */
-.control-btn.active {
-    opacity: 1;
-    color: var(--text-primary);
-    /* Use white for active */
-    filter: grayscale(0);
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+.shutter-icon {
+    font-size: 40px;
 }
 
+.shutter-label {
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.2em;
+    font-weight: 600;
+}
+
+/* Photo Counter */
 .photo-counter {
     display: flex;
     flex-direction: column;
@@ -168,6 +165,32 @@
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.1em;
+}
+
+/* Secondary Controls Buttons */
+.control-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: all 0.2s;
+    filter: grayscale(1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.control-btn:hover {
+    opacity: 0.8;
+}
+
+.control-btn.active {
+    opacity: 1;
+    color: var(--text-primary);
+    filter: grayscale(0);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 /* Loading */
