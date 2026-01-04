@@ -132,6 +132,12 @@
     opacity: 1;
 }
 
+.control-btn.active {
+    color: var(--accent);
+    opacity: 1;
+    text-shadow: 0 0 10px var(--accent-glow);
+}
+
 .photo-counter {
     display: flex;
     flex-direction: column;

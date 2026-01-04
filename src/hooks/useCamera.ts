@@ -9,7 +9,7 @@ interface UseCameraReturn {
     startCamera: () => Promise<void>;
     stopCamera: () => void;
     switchCamera: () => void;
-    capturePhoto: (filter: string) => string | null;
+    capturePhoto: (filter: string, isMirrored?: boolean) => string | null;
 }
 
 export const useCamera = (): UseCameraReturn => {
@@ -81,7 +81,7 @@ export const useCamera = (): UseCameraReturn => {
         }
     }, [facingMode]);
 
-    const capturePhoto = useCallback((filterCss: string): string | null => {
+    const capturePhoto = useCallback((filterCss: string, isMirrored: boolean = false): string | null => {
         if (!videoRef.current || !canvasRef.current) return null;
 
         const video = videoRef.current;
@@ -94,9 +94,48 @@ export const useCamera = (): UseCameraReturn => {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
-        // Apply filter and draw
-        ctx.filter = filterCss;
+        // Apply visual mirroring if requested
+        ctx.save();
+        if (isMirrored) {
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+        } else {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        }
+        ctx.restore();
+
+        // Apply filter
+        // Note: Canvas filter API affects subsequent drawings. 
+        // To apply filter to the already drawn image, we'd strictly need to draw again or use advanced techniques.
+        // A simpler approximation for "vintage filter" in canvas often involves drawing an overlay or manipulating pixels.
+        // However, standard `ctx.filter` works on `drawImage`. Since we already drew, let's redraw with filter if supported or stick to CSS parity.
+        // For simplicity/compatibility in this hook, we usually apply the filter property BEFORE drawing.
+        // Let's re-do the drawing logic safely to support both mirror AND filter.
+
+        /* 
+           Correct approach:
+           1. Clear canvas
+           2. Set filter
+           3. Save context
+           4. Apply mirror transform
+           5. Draw image
+           6. Restore context
+        */
+
+        // Reset and clear
+        canvas.width = video.videoWidth; // Resets context
+
+        if (ctx.filter) {
+            ctx.filter = filterCss;
+        }
+
+        ctx.save();
+        if (isMirrored) {
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+        }
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
 
         // Add film grain overlay
         ctx.filter = 'none';

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 import {
     collection,
     addDoc,
@@ -7,6 +7,8 @@ import {
     query,
     orderBy,
     Timestamp,
+    deleteDoc,
+    doc,
     type DocumentData
 } from 'firebase/firestore';
 import { storage, db } from '../lib/firebase';
@@ -26,6 +28,7 @@ interface UseFirebaseReturn {
     uploadError: string | null;
     uploadPhoto: (dataUrl: string, author: string, filter: string, eventId: string) => Promise<boolean>;
     subscribeToPhotos: (eventId: string) => () => void;
+    deletePhoto: (photoId: string, eventId: string, imageUrl?: string) => Promise<boolean>;
 }
 
 export const useFirebase = (): UseFirebaseReturn => {
@@ -97,11 +100,42 @@ export const useFirebase = (): UseFirebaseReturn => {
         return unsubscribe;
     }, []);
 
+    const deletePhoto = useCallback(async (photoId: string, eventId: string, imageUrl?: string): Promise<boolean> => {
+        setIsLoading(true);
+        try {
+            // 1. Delete from Firestore
+            await deleteDoc(doc(db, 'events', eventId, 'photos', photoId));
+
+            // 2. Delete from Storage (if we can derive ref)
+            // Ideally we should store the storage path ref in firestore.
+            // But we can try to ref from URL if permitted or if we have a pattern.
+            // Our pattern: photos/${filename}
+            // URL contains the token and full path. 
+            // ref(storage, url) supports full HTTP URLs for deleteObject! 
+            if (imageUrl) {
+                try {
+                    const imageRef = ref(storage, imageUrl);
+                    await deleteObject(imageRef);
+                } catch (storageErr) {
+                    console.warn('Could not delete file from storage, might handle manually or ignore', storageErr);
+                }
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Error deleting photo:', error);
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     return {
         photos,
         isLoading,
         uploadError,
         uploadPhoto,
-        subscribeToPhotos
+        subscribeToPhotos,
+        deletePhoto
     };
 };

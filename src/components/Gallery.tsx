@@ -8,9 +8,10 @@ interface GalleryProps {
 }
 
 export const Gallery = ({ eventId }: GalleryProps) => {
-    const { photos, subscribeToPhotos } = useFirebase();
+    const { photos, subscribeToPhotos, deletePhoto } = useFirebase();
     const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
     const [newPhotoAnimation, setNewPhotoAnimation] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         const unsubscribe = subscribeToPhotos(eventId);
@@ -40,6 +41,19 @@ export const Gallery = ({ eventId }: GalleryProps) => {
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Download error:', error);
+        }
+    };
+
+    const handleDelete = async (photo: Photo) => {
+        if (window.confirm('¿Estás seguro de que quieres eliminar esta foto?')) {
+            setIsDeleting(true);
+            const success = await deletePhoto(photo.id, eventId, photo.imageUrl);
+            setIsDeleting(false);
+            if (success) {
+                setSelectedPhoto(null);
+            } else {
+                alert('Error al eliminar la foto');
+            }
         }
     };
 
@@ -87,12 +101,22 @@ export const Gallery = ({ eventId }: GalleryProps) => {
                                 <span className="label">Capturada por</span>
                                 <span className="value">{selectedPhoto.author}</span>
                             </div>
-                            <button
-                                className="download-btn"
-                                onClick={() => handleDownload(selectedPhoto)}
-                            >
-                                ⬇️ Descargar
-                            </button>
+                            <div className="modal-actions">
+                                <button
+                                    className="action-icon-btn delete-btn"
+                                    onClick={() => handleDelete(selectedPhoto)}
+                                    disabled={isDeleting}
+                                    title="Eliminar"
+                                >
+                                    🗑️
+                                </button>
+                                <button
+                                    className="download-btn"
+                                    onClick={() => handleDownload(selectedPhoto)}
+                                >
+                                    ⬇️ DESCARGAR
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -14,6 +14,8 @@ interface CameraProps {
 export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
     const [selectedFilter, setSelectedFilter] = useState<VintageFilter>(vintageFilters[0]);
     const [showFlash, setShowFlash] = useState(false);
+    const [enableFlash, setEnableFlash] = useState(false);
+    const [isMirrored, setIsMirrored] = useState(true); // Default to mirrored (selfie mode)
     const [photoCount, setPhotoCount] = useState(0);
     const [lastPhoto, setLastPhoto] = useState<string | null>(null);
 
@@ -37,11 +39,13 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
         if (!isReady || isLoading) return;
 
         // Flash effect
-        setShowFlash(true);
-        setTimeout(() => setShowFlash(false), 150);
+        if (enableFlash) {
+            setShowFlash(true);
+            setTimeout(() => setShowFlash(false), 150);
+        }
 
         // Capture photo with filter
-        const photoData = capturePhoto(selectedFilter.cssFilter);
+        const photoData = capturePhoto(selectedFilter.cssFilter, isMirrored);
 
         if (photoData) {
             setLastPhoto(photoData);
@@ -85,7 +89,10 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
                     playsInline
                     muted
                     className="camera-video"
-                    style={{ filter: selectedFilter.cssFilter }}
+                    style={{
+                        filter: selectedFilter.cssFilter,
+                        transform: isMirrored ? 'scaleX(-1)' : 'none'
+                    }}
                 />
 
                 {/* Film grain overlay */}
@@ -130,21 +137,40 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
 
             {/* Controls */}
             <div className="camera-controls">
-                <button className="control-btn switch-btn" onClick={switchCamera}>
-                    <span className="icon">🔄</span>
-                </button>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                    <button
+                        className={`control-btn ${enableFlash ? 'active' : ''}`}
+                        onClick={() => setEnableFlash(!enableFlash)}
+                        title="Flash"
+                    >
+                        {enableFlash ? '⚡' : '🌩️'}
+                    </button>
+                    <button
+                        className={`control-btn ${isMirrored ? 'active' : ''}`}
+                        onClick={() => setIsMirrored(!isMirrored)}
+                        title="Modo Espejo"
+                    >
+                        {isMirrored ? '↔️' : '➡️'}
+                    </button>
+                </div>
 
-                <button
-                    className={`shutter-btn ${isLoading ? 'disabled' : ''}`}
-                    onClick={handleCapture}
-                    disabled={!isReady || isLoading}
-                >
-                    <div className="shutter-inner"></div>
-                </button>
+                <div style={{ position: 'relative' }}>
+                    <button
+                        className={`shutter-btn ${isLoading ? 'disabled' : ''}`}
+                        onClick={handleCapture}
+                        disabled={!isReady || isLoading}
+                    >
+                        <div className="shutter-inner"></div>
+                    </button>
+                </div>
 
                 <div className="photo-counter">
                     <span className="count">{photoCount}</span>
                     <span className="label">fotos</span>
+
+                    <button className="control-btn switch-btn" onClick={switchCamera} style={{ marginTop: '8px', fontSize: '1rem' }}>
+                        🔄
+                    </button>
                 </div>
             </div>
         </div>
