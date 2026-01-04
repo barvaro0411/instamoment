@@ -57,34 +57,86 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
             const ctx = canvas.getContext('2d');
             if (!ctx) return;
 
-            // Set canvas dimensions
-            canvas.width = img.width;
-            canvas.height = img.height;
+            // 1. Frame & Dimensions Logic
+            let renderWidth = img.width;
+            let renderHeight = img.height;
+            let paddingX = 0;
+            let paddingY = 0;
+            let dateY = 0; // Y position for date
 
-            // Apply selected filter
+            const isPolaroid = selectedFilter.frameType === 'polaroid';
+
+            if (isPolaroid) {
+                // Add white border (approx 10% side, 15% top/bottom)
+                const borderRatio = 0.1;
+                const bottomRatio = 0.25; // More space at bottom for text
+
+                const newWidth = img.width * (1 + borderRatio * 2);
+                const newHeight = img.height + (img.height * borderRatio) + (img.height * bottomRatio);
+
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+
+                // Fill white background
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, newWidth, newHeight);
+
+                // Calculate position to center image
+                paddingX = img.width * borderRatio;
+                paddingY = img.height * borderRatio;
+            } else {
+                canvas.width = img.width;
+                canvas.height = img.height;
+            }
+
+            // 2. Draw Image (with Filter)
             ctx.filter = selectedFilter.cssFilter;
-            ctx.drawImage(img, 0, 0);
-            ctx.filter = 'none'; // Reset
+            ctx.drawImage(img, paddingX, paddingY, renderWidth, renderHeight);
+            ctx.filter = 'none';
 
-            // Apply Date Stamp if enabled (Dazz Cam Style)
+            // 3. Draw Date Stamp
             if (selectedFilter.hasDateStamp) {
                 const now = new Date();
                 const yy = now.getFullYear().toString().slice(-2);
                 const mm = (now.getMonth() + 1).toString().padStart(2, '0');
                 const dd = now.getDate().toString().padStart(2, '0');
+
+                // Dazz uses strict monospace grouping: 'YY MM DD
                 const dateText = `'${yy} ${mm} ${dd}`;
 
-                const fontSize = Math.max(20, img.width * 0.03);
-                ctx.font = `bold ${fontSize}px "Courier New", monospace`;
-                ctx.fillStyle = '#ff9500';
-                ctx.shadowColor = 'rgba(0,0,0,0.5)';
-                ctx.shadowBlur = 4;
+                // Positioning logic
+                let fontSize = Math.max(24, img.width * 0.035);
+                let x = 0;
+                let y = 0;
 
-                const padding = img.width * 0.05;
-                const x = img.width - ctx.measureText(dateText).width - padding;
-                const y = img.height - padding;
+                ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+                ctx.fillStyle = selectedFilter.dateColor || '#ff9500';
+
+                if (selectedFilter.datePosition === 'top-center') {
+                    // Aesthetic 400 style (on the white frame top)
+                    ctx.fillStyle = '#000'; // Always black for this style
+                    ctx.shadowBlur = 0;
+                    x = (canvas.width - ctx.measureText(dateText).width) / 2;
+                    y = paddingY / 1.5; // Centered in top border
+                } else {
+                    // EK 80 style (Bottom Right, glowing)
+                    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                    ctx.shadowBlur = 4;
+                    const sidePad = img.width * 0.05;
+                    const botPad = img.width * 0.05;
+                    x = canvas.width - ctx.measureText(dateText).width - sidePad;
+                    y = canvas.height - botPad;
+                }
 
                 ctx.fillText(dateText, x, y);
+
+                // Extra Text for Aesthetic 400 (Handwritten "AES 400")
+                if (isPolaroid) {
+                    ctx.font = `italic ${fontSize * 0.8}px "Segoe UI", sans-serif`; // Placeholder for handwriting
+                    ctx.fillStyle = '#555';
+                    ctx.shadowBlur = 0;
+                    ctx.fillText("AES 400", paddingX, canvas.height - (img.height * 0.1));
+                }
             }
 
             // Get Data URL
