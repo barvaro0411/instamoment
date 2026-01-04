@@ -18,6 +18,7 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
     const [isMirrored, setIsMirrored] = useState(true); // Default to mirrored (selfie mode)
     const [photoCount, setPhotoCount] = useState(0);
     const [lastPhoto, setLastPhoto] = useState<string | null>(null);
+    const [isProcessingNative, setIsProcessingNative] = useState(false);
 
     const {
         videoRef,
@@ -65,6 +66,54 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
 
     const handleFilterChange = (filter: VintageFilter) => {
         setSelectedFilter(filter);
+    };
+
+    const handleNativeCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsProcessingNative(true);
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            if (!event.target?.result) return;
+            const img = new Image();
+            img.onload = async () => {
+                if (!canvasRef.current) return;
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return;
+
+                // Set canvas dimensions to match image
+                canvas.width = img.width;
+                canvas.height = img.height;
+
+                // Apply filter
+                ctx.filter = selectedFilter.cssFilter;
+                ctx.drawImage(img, 0, 0);
+
+                // Reset filter for other ops
+                ctx.filter = 'none';
+
+                // Get data URL
+                const photoData = canvas.toDataURL('image/jpeg', 0.85);
+                setLastPhoto(photoData);
+
+                // Upload
+                const success = await uploadPhoto(photoData, authorName, selectedFilter.id, eventId);
+                if (success) {
+                    setPhotoCount(prev => prev + 1);
+                    onPhotoTaken?.();
+                    setTimeout(() => setLastPhoto(null), 2000);
+                }
+                setIsProcessingNative(false);
+
+                // Reset input
+                e.target.value = '';
+            };
+            img.src = event.target.result as string;
+        };
+        reader.readAsDataURL(file);
     };
 
     if (error) {
@@ -118,10 +167,10 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
                 )}
 
                 {/* Loading indicator */}
-                {isLoading && (
+                {(isLoading || isProcessingNative) && (
                     <div className="loading-overlay">
                         <div className="loading-spinner"></div>
-                        <span>Subiendo...</span>
+                        <span>{isProcessingNative ? 'Procesando...' : 'Subiendo...'}</span>
                     </div>
                 )}
             </div>
