@@ -1,5 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { EventEntry } from './pages/EventEntry';
 import { CameraPage } from './pages/CameraPage';
 import { GalleryPage } from './pages/GalleryPage';
@@ -20,9 +20,18 @@ const CameraPageWrapper = () => {
 
 // Home page - create or join event
 const HomePage = () => {
+  const location = useLocation();
   const [eventName, setEventName] = useState('');
   const [nickname, setNickname] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.state) {
+      const { initialEventName, initialNickname } = location.state as { initialEventName?: string; initialNickname?: string };
+      if (initialEventName) setEventName(initialEventName);
+      if (initialNickname && initialNickname !== 'Anónimo') setNickname(initialNickname);
+    }
+  }, [location]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +70,7 @@ const HomePage = () => {
               required
             />
           </div>
-          
+
           <div className="input-group">
             <input
               type="text"
