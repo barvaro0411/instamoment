@@ -4,9 +4,17 @@ export interface VintageFilter {
     name: string;
     cssFilter: string;
     overlayGradient?: string;
+    hasDateStamp?: boolean;
 }
 
 export const vintageFilters: VintageFilter[] = [
+    {
+        id: 'film-r',
+        name: 'Film R (Dazz Style)',
+        cssFilter: 'contrast(1.2) brightness(1.1) saturate(1.2) sepia(0.2) hue-rotate(-5deg)',
+        overlayGradient: 'radial-gradient(circle at center, transparent 0%, rgba(50,20,0,0.2) 100%)',
+        hasDateStamp: true
+    },
     {
         id: 'polaroid',
         name: 'Polaroid',

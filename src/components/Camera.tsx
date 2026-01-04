@@ -66,6 +66,27 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
             ctx.drawImage(img, 0, 0);
             ctx.filter = 'none'; // Reset
 
+            // Apply Date Stamp if enabled (Dazz Cam Style)
+            if (selectedFilter.hasDateStamp) {
+                const now = new Date();
+                const yy = now.getFullYear().toString().slice(-2);
+                const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+                const dd = now.getDate().toString().padStart(2, '0');
+                const dateText = `'${yy} ${mm} ${dd}`;
+
+                const fontSize = Math.max(20, img.width * 0.03);
+                ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+                ctx.fillStyle = '#ff9500';
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.shadowBlur = 4;
+
+                const padding = img.width * 0.05;
+                const x = img.width - ctx.measureText(dateText).width - padding;
+                const y = img.height - padding;
+
+                ctx.fillText(dateText, x, y);
+            }
+
             // Get Data URL
             const finalPhotoData = canvas.toDataURL('image/jpeg', 0.85);
 
