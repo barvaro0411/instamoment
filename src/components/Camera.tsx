@@ -57,159 +57,166 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
             const ctx = canvas.getContext('2d');
             if (!ctx) return;
 
-            // 1. Frame & Dimensions Logic (Polaroid)
+            // 1. Frame Logic (Polaroid matches user CSS: 35px 28px 70px 28px)
             let paddingX = 0;
             let paddingY = 0;
-
             const isPolaroid = selectedFilter.frameType === 'polaroid';
 
             if (isPolaroid) {
-                // Polaroid Frame: white borders with extra space at bottom
-                // Logic based on FIMO aspect ratio
-                const borderSide = img.width * 0.08;
-                const borderTop = img.width * 0.08;
-                const borderBottom = img.width * 0.25;
+                // Scale padding based on image width to maintain proportions
+                // Base: 500px width -> 28px padding side. Ratio approx 0.056
+                const sidePad = img.width * 0.056;
+                const topPad = img.width * 0.07; // 35px is slightly more than 28px
+                const bottomPad = img.width * 0.14; // 70px is double top
 
-                const newWidth = img.width + (borderSide * 2);
-                const newHeight = img.height + borderTop + borderBottom;
+                const newWidth = img.width + (sidePad * 2);
+                const newHeight = img.height + topPad + bottomPad;
 
                 canvas.width = newWidth;
                 canvas.height = newHeight;
 
-                // Fill Polaroid Background (#fafafa per spec)
-                ctx.fillStyle = '#fafafa';
+                // Fill Background (#f8f8f8)
+                ctx.fillStyle = '#f8f8f8';
                 ctx.fillRect(0, 0, newWidth, newHeight);
 
-                // Add subtle shadow to inner photo? Optional, but adds depth
-                ctx.fillStyle = 'rgba(0,0,0,0.05)';
-                ctx.fillRect(borderSide, borderTop, img.width, img.height);
-
-                paddingX = borderSide;
-                paddingY = borderTop;
+                paddingX = sidePad;
+                paddingY = topPad;
             } else {
                 canvas.width = img.width;
                 canvas.height = img.height;
             }
 
-            // 2. Draw Image with Filter
-            // Save context to apply filter only to image area
+            // 2. Draw Base Image with CSS Filter
             ctx.save();
             ctx.filter = selectedFilter.cssFilter;
             ctx.drawImage(img, paddingX, paddingY, img.width, img.height);
             ctx.restore();
 
-            // 3. Effects (Grain & Light Leak)
-
-            // A) Film Grain (Simulated with noise pattern)
-            if (selectedFilter.hasGrain) {
-                // Generate a simple noise pattern on the fly
+            // 3. Color Overlay (Blending)
+            if (selectedFilter.colorOverlay) {
                 ctx.save();
-                ctx.globalAlpha = 0.15; // Subtle grain
-                ctx.globalCompositeOperation = 'overlay';
+                // Translate CSS blend modes to Canvas globalCompositeOperation
+                // 'lighten' -> 'lighten', 'overlay' -> 'overlay'
+                ctx.globalCompositeOperation = selectedFilter.colorOverlay.blendMode as GlobalCompositeOperation;
+                ctx.globalAlpha = selectedFilter.colorOverlay.opacity;
+                ctx.fillStyle = selectedFilter.colorOverlay.color;
+                ctx.fillRect(paddingX, paddingY, img.width, img.height);
+                ctx.restore();
+            }
 
-                // Draw random noise points
-                for (let i = 0; i < canvas.width; i += 4) {
-                    for (let j = 0; j < canvas.height; j += 4) {
-                        if (Math.random() > 0.5) {
-                            ctx.fillStyle = Math.random() > 0.5 ? '#000' : '#fff';
-                            ctx.fillRect(i, j, 2, 2);
-                        }
+            // 4. Vignette Overlay
+            if (selectedFilter.vignetteOverlay) {
+                ctx.save();
+                // EK80: Radial
+                if (selectedFilter.id === 'ek80') {
+                    // radial-gradient(ellipse at center, transparent 45%, rgba(40,30,20,0.25) 100%)
+                    const gradient = ctx.createRadialGradient(
+                        canvas.width / 2, canvas.height / 2, canvas.width * 0.3, // Start expanding at 30% to hit 45% visual transparency
+                        canvas.width / 2, canvas.height / 2, canvas.width * 0.707
+                    );
+                    gradient.addColorStop(0.45, 'transparent');
+                    gradient.addColorStop(1, 'rgba(40,30,20,0.25)');
+
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height); // Vignette covers whole canvas? Usually just photo. User CSS says "inset: 0" on relative container.
+                    // If frameType is none, canvas=img. If polaroid, we usually only vignette the photo.
+                    // But in user component, vignette is inside 'imageContent' div, so it covers image area.
+                }
+                // Aesthetic 400: Linear
+                else if (selectedFilter.id === 'aesthetic400') {
+                    // linear-gradient(180deg, rgba(255,255,250,0.05) 0%, transparent 100%)
+                    const gradient = ctx.createLinearGradient(0, paddingY, 0, paddingY + img.height);
+                    gradient.addColorStop(0, 'rgba(255,255,250,0.05)');
+                    gradient.addColorStop(1, 'transparent');
+
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(paddingX, paddingY, img.width, img.height);
+                }
+                ctx.restore();
+            }
+
+            // 5. Film Grain (Noise)
+            // User used SVG noise. We will stick to procedural noise but match opacity 0.08 & overlay
+            ctx.save();
+            ctx.globalCompositeOperation = 'overlay';
+            ctx.globalAlpha = 0.08;
+
+            // To emulate "fractalNoise", we can use slightly larger blocks or just dense noise
+            // For performance on mobile, we can generate a smaller pattern and repeat, or draw raw.
+            // Let's draw raw but skip pixels to be fast.
+            const grainSize = Math.max(1, img.width * 0.002); // Small neat grain
+            for (let i = 0; i < canvas.width; i += grainSize * 2) {
+                for (let j = 0; j < canvas.height; j += grainSize * 2) {
+                    if (Math.random() > 0.5) {
+                        ctx.fillStyle = '#000'; // Dark grain for overlay
+                        ctx.fillRect(i, j, grainSize, grainSize);
                     }
                 }
-                ctx.restore();
             }
+            ctx.restore();
 
-            // B) Light Leak (Radial Gradient)
-            if (selectedFilter.lightLeak) {
-                ctx.save();
-                ctx.globalCompositeOperation = 'screen';
-                // Top Right Red/Orange Leak
-                const gradient = ctx.createRadialGradient(
-                    canvas.width, 0, 0,
-                    canvas.width, 0, canvas.width * 0.6
-                );
-                gradient.addColorStop(0, 'rgba(255,180,100,0.4)');
-                gradient.addColorStop(0.6, 'transparent');
 
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.restore();
-            }
-
-            // C) Vignette (if in overlayGradient)
-            // Just applying a standard vignette for EK80 if needed, or rely on CSS filter
-            // But let's add the overlayGradient from definition if it exists
-            if (selectedFilter.overlayGradient && !selectedFilter.overlayGradient.includes('linear')) {
-                // Trying to parse complex CSS gradients is hard in Canvas. 
-                // For EK80, let's add a manual Vignette:
-                if (selectedFilter.id === 'ek80') {
-                    ctx.save();
-                    const vig = ctx.createRadialGradient(
-                        canvas.width / 2, canvas.height / 2, canvas.width * 0.3,
-                        canvas.width / 2, canvas.height / 2, canvas.width * 0.8
-                    );
-                    vig.addColorStop(0, 'transparent');
-                    vig.addColorStop(1, 'rgba(20,10,0,0.3)');
-                    ctx.fillStyle = vig;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.restore();
-                }
-            }
-
-            // 4. Date Stamp & Text
+            // 6. Date Stamp & Text
             if (selectedFilter.hasDateStamp) {
                 const now = new Date();
                 const yy = now.getFullYear().toString().slice(-2);
                 const mm = (now.getMonth() + 1).toString().padStart(2, '0');
                 const dd = now.getDate().toString().padStart(2, '0');
 
-                // Format: 'YY MM DD
-                const dateText = `'${yy} ${mm} ${dd}`;
-
-                let fontSize = Math.max(20, img.width * 0.035);
+                // User format logic check. EK80: ' 24 07 14 (with quote). Polaroid: 24 07 14 (clean)
 
                 ctx.save();
 
                 if (selectedFilter.datePosition === 'top-center') {
-                    // Aesthetic 400 (Polaroid Date)
+                    // aesthetic400 / Polaroid
+                    const dateText = `${yy} ${mm} ${dd}`;
+                    // Font: Courier New, 13px (relative scaling needed)
+                    // 13px on 500px width = 0.026 ratio
+                    const fontSize = Math.max(12, img.width * 0.035); // Bumped slightly for readability
+
                     ctx.font = `600 ${fontSize}px "Courier New", monospace`;
                     ctx.fillStyle = selectedFilter.dateColor || '#1a1a1a';
                     ctx.textAlign = 'center';
                     // Letter spacing simulation
-                    // Canvas doesn't support letter-spacing natively well, simplified:
                     const dateX = canvas.width / 2;
-                    const dateY = paddingY / 1.6;
+                    // Top is '8px' in CSS. 8/500 = 0.016.
+                    const dateY = paddingY * 0.6; // In the top whitespace
+
                     ctx.fillText(dateText, dateX, dateY);
 
-                    // Aesthetic 400 Caption "FIMO"
+                    // Caption "FIMO" (Using Caveat)
                     if (isPolaroid) {
-                        // Fallback font since we might not have Caveat
-                        ctx.font = `italic ${fontSize * 1.5}px "Brush Script MT", "Segoe UI", serif`;
+                        // 22px on 500px = 0.044
+                        const captionSize = Math.max(20, img.width * 0.05);
+                        ctx.font = `${captionSize}px "Caveat", cursive`;
                         ctx.fillStyle = '#2a2a2a';
-                        ctx.globalAlpha = 0.7;
                         ctx.textAlign = 'center';
-                        ctx.fillText("FIMO", canvas.width / 2, canvas.height - (img.height * 0.1));
+                        // Bottom 15px logic
+                        ctx.fillText("FIMO", canvas.width / 2, canvas.height - (img.width * 0.04));
                     }
 
                 } else if (selectedFilter.datePosition === 'bottom-left') {
-                    // EK 80 Style (Orange, Bottom Left)
-                    ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+                    // EK80
+                    const dateText = `' ${yy} ${mm} ${dd}`;
+                    // 11px on 500px = 0.022
+                    const fontSize = Math.max(11, img.width * 0.035); // Keeping readable
+
+                    ctx.font = `700 ${fontSize}px "Courier New", monospace`;
                     ctx.fillStyle = selectedFilter.dateColor || '#FF9500';
-                    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+
+                    // Shadows: 1px 1px 2px rgba(0,0,0,0.5), 0 0 4px rgba(255,149,0,0.4)
+                    // Canvas supports only one shadow usually via shadowColor/Blur. 
+                    // We'll prioritize the glow.
+                    ctx.shadowColor = 'rgba(0,0,0,0.5)';
                     ctx.shadowBlur = 2;
                     ctx.shadowOffsetX = 1;
                     ctx.shadowOffsetY = 1;
 
-                    const pad = img.width * 0.04;
+                    // Bottom 10px, Left 10px
+                    const offset = img.width * 0.03; // Approx 15px on 500px
+
                     ctx.textAlign = 'left';
-                    ctx.fillText(dateText, pad, canvas.height - pad);
-                } else {
-                    // Default Bottom Right
-                    ctx.font = `bold ${fontSize}px "Courier New", monospace`;
-                    ctx.fillStyle = selectedFilter.dateColor || '#FF9500';
-                    const pad = img.width * 0.05;
-                    ctx.textAlign = 'right';
-                    ctx.fillText(dateText, canvas.width - pad, canvas.height - pad);
+                    ctx.fillText(dateText, offset, canvas.height - offset);
                 }
                 ctx.restore();
             }
@@ -246,15 +253,31 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
                     <img
                         src={previewImage}
                         alt="Vista previa"
-                        style={{ filter: selectedFilter.cssFilter }}
+                        style={{
+                            filter: selectedFilter.cssFilter,
+                            // Basic preview styling, full accumulation logic is in canvas
+                        }}
                         className="preview-image"
                     />
-                    {/* Gradient Overlay Preview */}
-                    {selectedFilter.overlayGradient && (
-                        <div
-                            className="filter-overlay"
-                            style={{ background: selectedFilter.overlayGradient }}
-                        />
+                    {/* Color Overlay Preview */}
+                    {selectedFilter.colorOverlay && (
+                        <div style={{
+                            position: 'absolute',
+                            inset: 0,
+                            backgroundColor: selectedFilter.colorOverlay.color,
+                            mixBlendMode: selectedFilter.colorOverlay.blendMode as any,
+                            opacity: selectedFilter.colorOverlay.opacity,
+                            pointerEvents: 'none'
+                        }} />
+                    )}
+                    {/* Vignette Preview */}
+                    {selectedFilter.vignetteOverlay && (
+                        <div style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: selectedFilter.vignetteOverlay,
+                            pointerEvents: 'none'
+                        }} />
                     )}
                 </div>
 
