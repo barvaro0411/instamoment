@@ -13,8 +13,14 @@ interface CameraProps {
 
 export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
     const [selectedFilter, setSelectedFilter] = useState<VintageFilter>(vintageFilters[0]);
-    const [enableFlash, setEnableFlash] = useState(false);
-    const [isMirrored, setIsMirrored] = useState(true); // Default to mirrored (selfie mode)
+    // const [enableFlash, setEnableFlash] = useState(false);  <-- Removed
+    // const [isMirrored, setIsMirrored] = useState(true);     <-- Removed, but isMirrored was used in render. Hardcode to true?
+    // Wait, isMirrored is used in <video style={{ transform... }}>. 
+    // Since we removed the toggle, we should keep the state OR hardcode it. 
+    // User wants native first, but the background video is still there. 
+    // Let's hardcode it to true (mirrored) for better selfie experience without toggle.
+    const isMirrored = true;
+
     const [photoCount, setPhotoCount] = useState(0);
     const [lastPhoto, setLastPhoto] = useState<string | null>(null);
     const [isProcessingNative, setIsProcessingNative] = useState(false);
@@ -163,22 +169,9 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
 
             {/* Controls */}
             <div className="camera-controls native-first">
-                {/* Secondary Web Controls (Small) */}
+                {/* Secondary Web Controls (Small) - Empty for spacing/centering */}
                 <div className="secondary-controls left">
-                    <button
-                        className={`control-btn ${enableFlash ? 'active' : ''}`}
-                        onClick={() => setEnableFlash(!enableFlash)}
-                        title="Flash (Web)"
-                    >
-                        {enableFlash ? '⚡' : '🌩️'}
-                    </button>
-                    <button
-                        className={`control-btn ${isMirrored ? 'active' : ''}`}
-                        onClick={() => setIsMirrored(!isMirrored)}
-                        title="Modo Espejo"
-                    >
-                        {isMirrored ? '↔️' : '➡️'}
-                    </button>
+                    {/* Flash and Mirror buttons removed as requested to prioritize Native Camera app */}
                 </div>
 
                 {/* Primary Native Shutter */}
