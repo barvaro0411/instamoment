@@ -220,8 +220,26 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
                     <button className="control-btn switch-btn" onClick={switchCamera} style={{ marginTop: '8px', fontSize: '1rem' }}>
                         🔄
                     </button>
+                    <label
+                        htmlFor="native-camera-input"
+                        className="control-btn"
+                        style={{ marginTop: '4px', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        title="Usar Cámara Nativa (Flash Real)"
+                    >
+                        📸
+                    </label>
                 </div>
             </div>
+
+            {/* Hidden Native Camera Input */}
+            <input
+                id="native-camera-input"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                style={{ display: 'none' }}
+                onChange={handleNativeCapture}
+            />
         </div>
     );
 };
