@@ -11,7 +11,6 @@
     flex: 1;
     margin: 10px;
     border-radius: 2px;
-    /* Sharper corners for vintage feel */
     overflow: hidden;
     background: #000;
     box-shadow: 0 0 0 1px var(--glass-border);
@@ -30,22 +29,30 @@
     pointer-events: none;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.1'/%3E%3C/svg%3E");
     mix-blend-mode: overlay;
+    z-index: 10;
 }
 
 .flash-effect {
     position: absolute;
     inset: 0;
     background: #fff;
-    animation: simpleFlash 0.2s ease-out;
+    animation: simpleFlash 0.3s ease-out forwards;
+    /* Increased duration and forwards */
     pointer-events: none;
+    z-index: 100;
+    /* Ensure strictly on top */
 }
 
 @keyframes simpleFlash {
-    from {
-        opacity: 0.8;
+    0% {
+        opacity: 0;
     }
 
-    to {
+    10% {
+        opacity: 1;
+    }
+
+    100% {
         opacity: 0;
     }
 }
@@ -59,6 +66,7 @@
     height: 80px;
     border: 1px solid rgba(255, 255, 255, 0.5);
     background: #000;
+    z-index: 20;
 }
 
 .photo-preview img {
@@ -124,18 +132,22 @@
     color: var(--text-secondary);
     font-size: 1.5rem;
     cursor: pointer;
-    opacity: 0.7;
-    transition: opacity 0.2s;
+    opacity: 0.5;
+    transition: all 0.2s;
+    filter: grayscale(1);
 }
 
 .control-btn:hover {
-    opacity: 1;
+    opacity: 0.8;
 }
 
+/* Active state for toggles */
 .control-btn.active {
-    color: var(--accent);
     opacity: 1;
-    text-shadow: 0 0 10px var(--accent-glow);
+    color: var(--text-primary);
+    /* Use white for active */
+    filter: grayscale(0);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 .photo-counter {
@@ -170,4 +182,5 @@
     font-size: 0.8rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
+    z-index: 50;
 }
