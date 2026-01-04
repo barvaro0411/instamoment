@@ -13,7 +13,6 @@ interface CameraProps {
 
 export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
     const [selectedFilter, setSelectedFilter] = useState<VintageFilter>(vintageFilters[0]);
-    const [showFlash, setShowFlash] = useState(false);
     const [enableFlash, setEnableFlash] = useState(false);
     const [isMirrored, setIsMirrored] = useState(true); // Default to mirrored (selfie mode)
     const [photoCount, setPhotoCount] = useState(0);
@@ -23,11 +22,9 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
     const {
         videoRef,
         canvasRef,
-        isReady,
         error,
         startCamera,
-        switchCamera,
-        capturePhoto
+        switchCamera
     } = useCamera();
 
     const { uploadPhoto, isLoading } = useFirebase();
@@ -135,8 +132,8 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
                     />
                 )}
 
-                {/* Flash effect */}
-                {showFlash && <div className="flash-effect" />}
+                {/* Flash effect - Removed as unused for native first */}
+                {/* {showFlash && <div className="flash-effect" />} */}
 
                 {/* Last photo preview */}
                 {lastPhoto && (
