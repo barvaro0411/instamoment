@@ -13,12 +13,20 @@ export const CameraPage = ({ eventId, authorName }: CameraPageProps) => {
     return (
         <div className="camera-page">
             <header className="camera-header">
-                <h1 className="logo">InstaMoment</h1>
+                <h1 className="brand-logo" style={{ fontSize: '2rem', margin: 0 }}>InstaMoment</h1>
                 <button
-                    className="gallery-link"
                     onClick={() => navigate(`/gallery/${eventId}`)}
+                    style={{
+                        background: 'transparent',
+                        border: '1px solid var(--text-secondary)',
+                        color: 'var(--text-primary)',
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        fontSize: '0.9rem',
+                        cursor: 'pointer'
+                    }}
                 >
-                    📷 Ver Galería
+                    GALERÍA →
                 </button>
             </header>
 

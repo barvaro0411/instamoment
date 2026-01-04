@@ -21,6 +21,7 @@ const CameraPageWrapper = () => {
 // Home page - create or join event
 const HomePage = () => {
   const [eventName, setEventName] = useState('');
+  const [nickname, setNickname] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -32,49 +33,48 @@ const HomePage = () => {
         .trim()
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '');
-      navigate(`/event/${eventId}`);
+
+      // Store nickname if provided
+      if (nickname.trim()) {
+        sessionStorage.setItem(`instamoment_${eventId}_name`, nickname.trim());
+        navigate(`/camera/${eventId}`);
+      } else {
+        navigate(`/event/${eventId}`);
+      }
     }
   };
 
   return (
     <div className="home-page">
-      <div className="home-container">
-        <h1 className="home-logo">InstaMoment</h1>
-        <p className="home-tagline">La cámara vintage para tus momentos especiales</p>
+      <div className="home-container fade-in">
+        <h1 className="brand-logo">InstaMoment</h1>
+        <p className="brand-tagline">La cámara vintage para tus momentos</p>
 
-        <div className="home-info">
-          <div className="info-card">
-            <span className="info-icon">📸</span>
-            <h3>Cámara Vintage</h3>
-            <p>Filtros estilo película para fotos únicas</p>
-          </div>
-          <div className="info-card">
-            <span className="info-icon">☁️</span>
-            <h3>Nube Instantánea</h3>
-            <p>Todas las fotos se guardan automáticamente</p>
-          </div>
-          <div className="info-card">
-            <span className="info-icon">👥</span>
-            <h3>Galería Compartida</h3>
-            <p>Todos ven las fotos en tiempo real</p>
-          </div>
-        </div>
-
-        <form className="event-form" onSubmit={handleSubmit}>
-          <h2>🎉 Crear o Unirse a un Evento</h2>
-          <div className="form-group">
+        <form className="minimal-form" onSubmit={handleSubmit}>
+          <div className="input-group">
             <input
               type="text"
               value={eventName}
               onChange={(e) => setEventName(e.target.value)}
-              placeholder="Nombre del evento (ej: cumple-maria-2024)"
-              className="event-input"
+              placeholder="Nombre del evento"
+              className="minimal-input"
+              required
             />
-            <button type="submit" className="event-button">
-              Comenzar 📸
-            </button>
           </div>
-          <p className="form-hint">El nombre se convertirá en el link del evento</p>
+          
+          <div className="input-group">
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="Tu nombre (Opcional)"
+              className="minimal-input"
+            />
+          </div>
+
+          <button type="submit" className="action-btn">
+            COMENZAR EXPERIENCIA
+          </button>
         </form>
       </div>
     </div>

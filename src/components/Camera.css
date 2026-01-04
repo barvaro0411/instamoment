@@ -1,17 +1,20 @@
+/* Minimalist Camera Styles */
 .camera-container {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: #0a0a0a;
+    background: var(--bg-primary);
 }
 
 .viewfinder {
     position: relative;
     flex: 1;
+    margin: 10px;
+    border-radius: 2px;
+    /* Sharper corners for vintage feel */
     overflow: hidden;
-    border-radius: 16px;
-    margin: 16px;
-    background: #1a1a1a;
+    background: #000;
+    box-shadow: 0 0 0 1px var(--glass-border);
 }
 
 .camera-video {
@@ -20,40 +23,26 @@
     object-fit: cover;
 }
 
+/* Overlays */
 .grain-overlay {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    opacity: 0.08;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.1'/%3E%3C/svg%3E");
     mix-blend-mode: overlay;
-}
-
-.filter-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    pointer-events: none;
 }
 
 .flash-effect {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: white;
-    animation: flash 0.15s ease-out;
+    inset: 0;
+    background: #fff;
+    animation: simpleFlash 0.2s ease-out;
+    pointer-events: none;
 }
 
-@keyframes flash {
+@keyframes simpleFlash {
     from {
-        opacity: 1;
+        opacity: 0.8;
     }
 
     to {
@@ -61,129 +50,66 @@
     }
 }
 
+/* Photo Preview (Minimalist) */
 .photo-preview {
     position: absolute;
-    bottom: 16px;
-    right: 16px;
-    width: 80px;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
     height: 80px;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 2px solid white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    animation: slideIn 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: #000;
 }
 
 .photo-preview img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    opacity: 0.8;
 }
 
 .preview-label {
     position: absolute;
-    bottom: 0;
-    left: 0;
+    bottom: -20px;
     right: 0;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-    color: #4ade80;
-    font-size: 10px;
-    padding: 4px;
-    text-align: center;
+    font-size: 0.7rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: scale(0.8) translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-.loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.5);
-    color: white;
-    gap: 12px;
-}
-
-.loading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(255, 255, 255, 0.2);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Camera Controls */
+/* Controls Area */
 .camera-controls {
     display: flex;
     align-items: center;
     justify-content: space-around;
-    padding: 20px;
-    padding-bottom: 40px;
+    padding: 30px 20px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--glass-border);
 }
 
-.control-btn {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-.control-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.05);
-}
-
+/* Minimalist Shutter Button */
 .shutter-btn {
-    width: 80px;
-    height: 80px;
+    width: 72px;
+    height: 72px;
     border-radius: 50%;
-    background: white;
-    border: 4px solid rgba(255, 255, 255, 0.3);
+    background: transparent;
+    border: 2px solid var(--text-primary);
+    padding: 4px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s ease;
-    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
-}
-
-.shutter-btn:hover:not(.disabled) {
-    transform: scale(1.05);
-    box-shadow: 0 6px 25px rgba(255, 255, 255, 0.3);
+    transition: transform 0.1s;
 }
 
 .shutter-btn:active:not(.disabled) {
     transform: scale(0.95);
+}
+
+.shutter-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--text-primary);
+    transition: background 0.2s;
 }
 
 .shutter-btn.disabled {
@@ -191,72 +117,51 @@
     cursor: not-allowed;
 }
 
-.shutter-inner {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
-    transition: all 0.15s ease;
+/* Secondary Controls */
+.control-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
 }
 
-.shutter-btn:active:not(.disabled) .shutter-inner {
-    transform: scale(0.9);
+.control-btn:hover {
+    opacity: 1;
 }
 
 .photo-counter {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 50px;
+    font-family: var(--font-sans);
 }
 
 .photo-counter .count {
-    font-size: 24px;
-    font-weight: bold;
-    color: white;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    font-weight: 300;
 }
 
 .photo-counter .label {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
-/* Error State */
-.camera-error {
+/* Loading */
+.loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%;
-    padding: 40px;
-    text-align: center;
-    color: white;
-    gap: 16px;
-}
-
-.error-icon {
-    font-size: 64px;
-    opacity: 0.5;
-}
-
-.camera-error p {
-    color: rgba(255, 255, 255, 0.7);
-    line-height: 1.5;
-}
-
-.retry-btn {
-    padding: 12px 24px;
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
-    border: none;
-    border-radius: 30px;
-    color: white;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.retry-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
 }

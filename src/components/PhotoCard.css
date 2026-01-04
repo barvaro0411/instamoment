@@ -1,15 +1,16 @@
 .photo-card {
     position: relative;
-    border-radius: 12px;
+    border-radius: 2px;
     overflow: hidden;
     cursor: pointer;
-    background: #1a1a1a;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: var(--bg-secondary);
+    transition: transform 0.2s ease;
+    border: 1px solid var(--glass-border);
 }
 
 .photo-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+    border-color: var(--text-secondary);
 }
 
 .photo-image-wrapper {
@@ -22,6 +23,12 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    opacity: 0.9;
+    transition: opacity 0.2s;
+}
+
+.photo-card:hover .photo-image {
+    opacity: 1;
 }
 
 .photo-overlay {
@@ -30,35 +37,37 @@
     left: 0;
     right: 0;
     padding: 8px;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
     display: flex;
     justify-content: flex-end;
 }
 
 .filter-badge {
-    font-size: 10px;
-    padding: 4px 8px;
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(4px);
-    border-radius: 20px;
-    color: white;
+    font-size: 9px;
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .photo-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 12px;
-    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--glass-border);
 }
 
 .author {
-    font-size: 13px;
-    color: white;
+    font-size: 0.8rem;
+    color: var(--text-primary);
     font-weight: 500;
 }
 
 .time {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: 300;
 }

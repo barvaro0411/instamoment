@@ -15,36 +15,42 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid transparent;
-  border-radius: 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
   min-width: 70px;
 }
 
 .filter-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
+  background: var(--bg-secondary);
 }
 
 .filter-btn.active {
-  border-color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.2);
+  border-color: var(--accent);
+  background: var(--bg-secondary);
 }
 
 .filter-preview {
   width: 50px;
   height: 50px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 2px;
+  background: #333;
+  border: 1px solid var(--glass-border);
 }
 
 .filter-name {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   text-align: center;
   white-space: nowrap;
+}
+
+.filter-btn.active .filter-name {
+  color: var(--text-primary);
 }

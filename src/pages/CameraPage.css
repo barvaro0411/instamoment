@@ -1,8 +1,9 @@
+/* Layout structure only - styles handled by global theme */
 .camera-page {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background: linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 100%);
+    background: var(--bg-primary);
 }
 
 .camera-header {
@@ -10,33 +11,6 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(10px);
-}
-
-.logo {
-    font-size: 22px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin: 0;
-}
-
-.gallery-link {
-    padding: 10px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 25px;
-    color: white;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.gallery-link:hover {
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateY(-1px);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--glass-border);
 }
