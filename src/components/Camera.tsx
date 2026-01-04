@@ -57,85 +57,161 @@ export const Camera = ({ eventId, authorName, onPhotoTaken }: CameraProps) => {
             const ctx = canvas.getContext('2d');
             if (!ctx) return;
 
-            // 1. Frame & Dimensions Logic
-            let renderWidth = img.width;
-            let renderHeight = img.height;
+            // 1. Frame & Dimensions Logic (Polaroid)
             let paddingX = 0;
             let paddingY = 0;
 
             const isPolaroid = selectedFilter.frameType === 'polaroid';
 
             if (isPolaroid) {
-                // Add white border (approx 10% side, 15% top/bottom)
-                const borderRatio = 0.1;
-                const bottomRatio = 0.25; // More space at bottom for text
+                // Polaroid Frame: white borders with extra space at bottom
+                // Logic based on FIMO aspect ratio
+                const borderSide = img.width * 0.08;
+                const borderTop = img.width * 0.08;
+                const borderBottom = img.width * 0.25;
 
-                const newWidth = img.width * (1 + borderRatio * 2);
-                const newHeight = img.height + (img.height * borderRatio) + (img.height * bottomRatio);
+                const newWidth = img.width + (borderSide * 2);
+                const newHeight = img.height + borderTop + borderBottom;
 
                 canvas.width = newWidth;
                 canvas.height = newHeight;
 
-                // Fill white background
-                ctx.fillStyle = '#ffffff';
+                // Fill Polaroid Background (#fafafa per spec)
+                ctx.fillStyle = '#fafafa';
                 ctx.fillRect(0, 0, newWidth, newHeight);
 
-                // Calculate position to center image
-                paddingX = img.width * borderRatio;
-                paddingY = img.height * borderRatio;
+                // Add subtle shadow to inner photo? Optional, but adds depth
+                ctx.fillStyle = 'rgba(0,0,0,0.05)';
+                ctx.fillRect(borderSide, borderTop, img.width, img.height);
+
+                paddingX = borderSide;
+                paddingY = borderTop;
             } else {
                 canvas.width = img.width;
                 canvas.height = img.height;
             }
 
-            // 2. Draw Image (with Filter)
+            // 2. Draw Image with Filter
+            // Save context to apply filter only to image area
+            ctx.save();
             ctx.filter = selectedFilter.cssFilter;
-            ctx.drawImage(img, paddingX, paddingY, renderWidth, renderHeight);
-            ctx.filter = 'none';
+            ctx.drawImage(img, paddingX, paddingY, img.width, img.height);
+            ctx.restore();
 
-            // 3. Draw Date Stamp
+            // 3. Effects (Grain & Light Leak)
+
+            // A) Film Grain (Simulated with noise pattern)
+            if (selectedFilter.hasGrain) {
+                // Generate a simple noise pattern on the fly
+                ctx.save();
+                ctx.globalAlpha = 0.15; // Subtle grain
+                ctx.globalCompositeOperation = 'overlay';
+
+                // Draw random noise points
+                for (let i = 0; i < canvas.width; i += 4) {
+                    for (let j = 0; j < canvas.height; j += 4) {
+                        if (Math.random() > 0.5) {
+                            ctx.fillStyle = Math.random() > 0.5 ? '#000' : '#fff';
+                            ctx.fillRect(i, j, 2, 2);
+                        }
+                    }
+                }
+                ctx.restore();
+            }
+
+            // B) Light Leak (Radial Gradient)
+            if (selectedFilter.lightLeak) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'screen';
+                // Top Right Red/Orange Leak
+                const gradient = ctx.createRadialGradient(
+                    canvas.width, 0, 0,
+                    canvas.width, 0, canvas.width * 0.6
+                );
+                gradient.addColorStop(0, 'rgba(255,180,100,0.4)');
+                gradient.addColorStop(0.6, 'transparent');
+
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.restore();
+            }
+
+            // C) Vignette (if in overlayGradient)
+            // Just applying a standard vignette for EK80 if needed, or rely on CSS filter
+            // But let's add the overlayGradient from definition if it exists
+            if (selectedFilter.overlayGradient && !selectedFilter.overlayGradient.includes('linear')) {
+                // Trying to parse complex CSS gradients is hard in Canvas. 
+                // For EK80, let's add a manual Vignette:
+                if (selectedFilter.id === 'ek80') {
+                    ctx.save();
+                    const vig = ctx.createRadialGradient(
+                        canvas.width / 2, canvas.height / 2, canvas.width * 0.3,
+                        canvas.width / 2, canvas.height / 2, canvas.width * 0.8
+                    );
+                    vig.addColorStop(0, 'transparent');
+                    vig.addColorStop(1, 'rgba(20,10,0,0.3)');
+                    ctx.fillStyle = vig;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.restore();
+                }
+            }
+
+            // 4. Date Stamp & Text
             if (selectedFilter.hasDateStamp) {
                 const now = new Date();
                 const yy = now.getFullYear().toString().slice(-2);
                 const mm = (now.getMonth() + 1).toString().padStart(2, '0');
                 const dd = now.getDate().toString().padStart(2, '0');
 
-                // Dazz uses strict monospace grouping: 'YY MM DD
+                // Format: 'YY MM DD
                 const dateText = `'${yy} ${mm} ${dd}`;
 
-                // Positioning logic
-                let fontSize = Math.max(24, img.width * 0.035);
-                let x = 0;
-                let y = 0;
+                let fontSize = Math.max(20, img.width * 0.035);
 
-                ctx.font = `bold ${fontSize}px "Courier New", monospace`;
-                ctx.fillStyle = selectedFilter.dateColor || '#ff9500';
+                ctx.save();
 
                 if (selectedFilter.datePosition === 'top-center') {
-                    // Aesthetic 400 style (on the white frame top)
-                    ctx.fillStyle = '#000'; // Always black for this style
-                    ctx.shadowBlur = 0;
-                    x = (canvas.width - ctx.measureText(dateText).width) / 2;
-                    y = paddingY / 1.5; // Centered in top border
+                    // Aesthetic 400 (Polaroid Date)
+                    ctx.font = `600 ${fontSize}px "Courier New", monospace`;
+                    ctx.fillStyle = selectedFilter.dateColor || '#1a1a1a';
+                    ctx.textAlign = 'center';
+                    // Letter spacing simulation
+                    // Canvas doesn't support letter-spacing natively well, simplified:
+                    const dateX = canvas.width / 2;
+                    const dateY = paddingY / 1.6;
+                    ctx.fillText(dateText, dateX, dateY);
+
+                    // Aesthetic 400 Caption "FIMO"
+                    if (isPolaroid) {
+                        // Fallback font since we might not have Caveat
+                        ctx.font = `italic ${fontSize * 1.5}px "Brush Script MT", "Segoe UI", serif`;
+                        ctx.fillStyle = '#2a2a2a';
+                        ctx.globalAlpha = 0.7;
+                        ctx.textAlign = 'center';
+                        ctx.fillText("FIMO", canvas.width / 2, canvas.height - (img.height * 0.1));
+                    }
+
+                } else if (selectedFilter.datePosition === 'bottom-left') {
+                    // EK 80 Style (Orange, Bottom Left)
+                    ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+                    ctx.fillStyle = selectedFilter.dateColor || '#FF9500';
+                    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+                    ctx.shadowBlur = 2;
+                    ctx.shadowOffsetX = 1;
+                    ctx.shadowOffsetY = 1;
+
+                    const pad = img.width * 0.04;
+                    ctx.textAlign = 'left';
+                    ctx.fillText(dateText, pad, canvas.height - pad);
                 } else {
-                    // EK 80 style (Bottom Right, glowing)
-                    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-                    ctx.shadowBlur = 4;
-                    const sidePad = img.width * 0.05;
-                    const botPad = img.width * 0.05;
-                    x = canvas.width - ctx.measureText(dateText).width - sidePad;
-                    y = canvas.height - botPad;
+                    // Default Bottom Right
+                    ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+                    ctx.fillStyle = selectedFilter.dateColor || '#FF9500';
+                    const pad = img.width * 0.05;
+                    ctx.textAlign = 'right';
+                    ctx.fillText(dateText, canvas.width - pad, canvas.height - pad);
                 }
-
-                ctx.fillText(dateText, x, y);
-
-                // Extra Text for Aesthetic 400 (Handwritten "AES 400")
-                if (isPolaroid) {
-                    ctx.font = `italic ${fontSize * 0.8}px "Segoe UI", sans-serif`; // Placeholder for handwriting
-                    ctx.fillStyle = '#555';
-                    ctx.shadowBlur = 0;
-                    ctx.fillText("AES 400", paddingX, canvas.height - (img.height * 0.1));
-                }
+                ctx.restore();
             }
 
             // Get Data URL
