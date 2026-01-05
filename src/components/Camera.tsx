@@ -52,12 +52,8 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
 
             const ctx = canvas.getContext('2d');
             if (ctx) {
-                // Apply horizontal flip (mirror) for front camera selfies
-                // This makes the saved image match what the user saw in the preview
-                ctx.translate(canvas.width, 0);
-                ctx.scale(-1, 1);
-
-                // Draw the image (browser handles EXIF orientation)
+                // Draw the image exactly as captured (no transformations)
+                // Browser handles EXIF orientation automatically
                 ctx.drawImage(img, 0, 0);
 
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
