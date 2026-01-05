@@ -51,8 +51,7 @@ export const CameraPage = ({ eventId, authorName }: CameraPageProps) => {
 
             <Camera
                 eventId={eventId}
-                authorName={authorName}
-                onPhotoTaken={() => { }}
+                onUploadSuccess={() => { }}
             />
         </div>
     );

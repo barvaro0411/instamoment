@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 export const EventEntry = () => {
     const navigate = useNavigate();
