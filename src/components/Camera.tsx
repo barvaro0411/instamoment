@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFirebase } from '../hooks/useFirebase';
 import { FilterSelector } from './FilterSelector';
 import { type VintageFilter, vintageFilters } from '../lib/filters';
@@ -13,16 +14,16 @@ interface CameraProps {
 
 export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
     // Hooks
-    // isLoading from hook covers the upload/save process
+    const navigate = useNavigate();
     const { uploadPhoto, isLoading: isUploadLoading } = useFirebase();
 
     // State
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [selectedFilter, setSelectedFilter] = useState<VintageFilter>(vintageFilters[0]);
-    // Local processing state (rendering engine)
     const [isRendering, setIsRendering] = useState(false);
-    // Flip state for manual mirror control
     const [isFlipped, setIsFlipped] = useState(false);
+    // Last saved photo thumbnail
+    const [lastSavedPhoto, setLastSavedPhoto] = useState<string | null>(null);
 
     // Refs
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -164,6 +165,8 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
                 const success = await uploadPhoto(dataUrl, authorName, selectedFilter.id, eventId);
 
                 if (success) {
+                    // Save thumbnail of last photo
+                    setLastSavedPhoto(dataUrl);
                     if (onUploadSuccess) onUploadSuccess();
                     setPreviewImage(null);
                 } else {
@@ -266,8 +269,17 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
                     <span className="shutter-label">TOCA PARA FOTO</span>
                 </div>
 
-                {/* Secondary Right (Placeholder) */}
+                {/* Last Photo Thumbnail */}
                 <div className="secondary-controls right">
+                    {lastSavedPhoto && (
+                        <button
+                            className="last-photo-thumbnail"
+                            onClick={() => navigate(`/gallery/${eventId}`)}
+                            title="Ver galería"
+                        >
+                            <img src={lastSavedPhoto} alt="Última foto" />
+                        </button>
+                    )}
                 </div>
             </div>
 
