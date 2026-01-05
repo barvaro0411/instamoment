@@ -21,6 +21,8 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
     const [selectedFilter, setSelectedFilter] = useState<VintageFilter>(vintageFilters[0]);
     // Local processing state (rendering engine)
     const [isRendering, setIsRendering] = useState(false);
+    // Flip state for manual mirror control
+    const [isFlipped, setIsFlipped] = useState(false);
 
     // Refs
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,6 +35,7 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
         if (!file) return;
 
         setIsRendering(true);
+        setIsFlipped(false); // Reset flip state for new photo
 
         try {
             // Create an image from the file
@@ -45,20 +48,15 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
                 img.src = url;
             });
 
-            // Create canvas and draw the image
+            // Create canvas and draw the image WITHOUT any transformations
+            // Let the user manually flip if needed
             const canvas = document.createElement('canvas');
             canvas.width = img.naturalWidth;
             canvas.height = img.naturalHeight;
 
             const ctx = canvas.getContext('2d');
             if (ctx) {
-                // Apply horizontal mirror to match what user saw in camera preview
-                // Front cameras show mirrored view, but save unmirrored
-                // This flip makes the saved image match the camera preview
-                ctx.translate(canvas.width, 0);
-                ctx.scale(-1, 1);
                 ctx.drawImage(img, 0, 0);
-
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
                 setPreviewImage(dataUrl);
             }
@@ -80,9 +78,47 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
         e.target.value = '';
     };
 
+    // Flip the current preview image horizontally
+    const handleFlip = async () => {
+        if (!previewImage) return;
+
+        setIsRendering(true);
+
+        try {
+            const img = new Image();
+            img.src = previewImage;
+
+            await new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = reject;
+            });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                // Flip horizontally
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+                ctx.drawImage(img, 0, 0);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                setPreviewImage(dataUrl);
+                setIsFlipped(!isFlipped);
+            }
+        } catch (error) {
+            console.error('Flip error:', error);
+        } finally {
+            setIsRendering(false);
+        }
+    };
+
     const handleRetake = () => {
         setPreviewImage(null);
         setIsRendering(false);
+        setIsFlipped(false);
     };
 
     const handleSave = async () => {
@@ -171,6 +207,16 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
 
                 {/* Filter Selector in Edit Mode */}
                 <div className="edit-controls">
+                    {/* Flip Button */}
+                    <button
+                        className="flip-btn"
+                        onClick={handleFlip}
+                        disabled={isBusy}
+                        title="Voltear imagen horizontalmente"
+                    >
+                        ↔️ Voltear
+                    </button>
+
                     <FilterSelector
                         selectedFilter={selectedFilter.id}
                         onFilterChange={setSelectedFilter}

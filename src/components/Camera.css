@@ -97,6 +97,30 @@
     border-top: 1px solid var(--glass-border);
 }
 
+/* Flip Button */
+.flip-btn {
+    align-self: center;
+    background: transparent;
+    border: 1px solid var(--text-secondary);
+    color: var(--text-primary);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 10px;
+}
+
+.flip-btn:hover {
+    background: var(--glass-bg);
+    border-color: var(--text-primary);
+}
+
+.flip-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .action-buttons {
     display: flex;
     gap: 16px;
