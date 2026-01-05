@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { type Photo, useFirebase } from '../hooks/useFirebase';
 import { PhotoCard } from './PhotoCard';
 import './Gallery.css';
@@ -9,13 +9,15 @@ interface GalleryProps {
 
 export const Gallery = ({ eventId }: GalleryProps) => {
     const { photos, subscribeToPhotos, deletePhoto } = useFirebase();
-    const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+    const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
     const [newPhotoAnimation, setNewPhotoAnimation] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // Touch/swipe state
-    const [touchStart, setTouchStart] = useState<number | null>(null);
-    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+    // Swipe state for smooth animation
+    const [dragOffset, setDragOffset] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const dragStartX = useRef(0);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const unsubscribe = subscribeToPhotos(eventId);
@@ -33,7 +35,7 @@ export const Gallery = ({ eventId }: GalleryProps) => {
 
     // Keyboard navigation
     useEffect(() => {
-        if (!selectedPhoto) return;
+        if (selectedPhotoIndex === null) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'ArrowLeft') {
@@ -41,56 +43,101 @@ export const Gallery = ({ eventId }: GalleryProps) => {
             } else if (e.key === 'ArrowRight') {
                 navigateNext();
             } else if (e.key === 'Escape') {
-                setSelectedPhoto(null);
+                closeModal();
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedPhoto, photos]);
+    }, [selectedPhotoIndex, photos.length]);
 
-    const getCurrentPhotoIndex = () => {
-        if (!selectedPhoto) return -1;
-        return photos.findIndex(p => p.id === selectedPhoto.id);
+    const selectedPhoto = selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null;
+
+    const closeModal = () => {
+        setSelectedPhotoIndex(null);
+        setDragOffset(0);
     };
 
     const navigateNext = () => {
-        const currentIndex = getCurrentPhotoIndex();
-        if (currentIndex < photos.length - 1) {
-            setSelectedPhoto(photos[currentIndex + 1]);
+        if (selectedPhotoIndex !== null && selectedPhotoIndex < photos.length - 1) {
+            setSelectedPhotoIndex(selectedPhotoIndex + 1);
         }
     };
 
     const navigatePrevious = () => {
-        const currentIndex = getCurrentPhotoIndex();
-        if (currentIndex > 0) {
-            setSelectedPhoto(photos[currentIndex - 1]);
+        if (selectedPhotoIndex !== null && selectedPhotoIndex > 0) {
+            setSelectedPhotoIndex(selectedPhotoIndex - 1);
         }
     };
 
-    // Touch handlers
-    const minSwipeDistance = 50;
-
-    const onTouchStart = (e: React.TouchEvent) => {
-        setTouchEnd(null);
-        setTouchStart(e.targetTouches[0].clientX);
+    // Touch handlers for smooth drag
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setIsDragging(true);
+        dragStartX.current = e.touches[0].clientX;
+        setDragOffset(0);
     };
 
-    const onTouchMove = (e: React.TouchEvent) => {
-        setTouchEnd(e.targetTouches[0].clientX);
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (!isDragging) return;
+        const currentX = e.touches[0].clientX;
+        const diff = currentX - dragStartX.current;
+
+        // Add resistance at edges
+        const atStart = selectedPhotoIndex === 0 && diff > 0;
+        const atEnd = selectedPhotoIndex === photos.length - 1 && diff < 0;
+
+        if (atStart || atEnd) {
+            setDragOffset(diff * 0.3); // Rubber band effect
+        } else {
+            setDragOffset(diff);
+        }
     };
 
-    const onTouchEnd = () => {
-        if (!touchStart || !touchEnd) return;
+    const handleTouchEnd = () => {
+        setIsDragging(false);
+        const threshold = 80; // Minimum distance to trigger navigation
 
-        const distance = touchStart - touchEnd;
-        const isLeftSwipe = distance > minSwipeDistance;
-        const isRightSwipe = distance < -minSwipeDistance;
-
-        if (isLeftSwipe) {
-            navigateNext();
-        } else if (isRightSwipe) {
+        if (dragOffset > threshold) {
             navigatePrevious();
+        } else if (dragOffset < -threshold) {
+            navigateNext();
+        }
+
+        // Animate back to center
+        setDragOffset(0);
+    };
+
+    // Mouse handlers for desktop
+    const handleMouseDown = (e: React.MouseEvent) => {
+        setIsDragging(true);
+        dragStartX.current = e.clientX;
+        setDragOffset(0);
+        e.preventDefault();
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging) return;
+        const currentX = e.clientX;
+        const diff = currentX - dragStartX.current;
+
+        const atStart = selectedPhotoIndex === 0 && diff > 0;
+        const atEnd = selectedPhotoIndex === photos.length - 1 && diff < 0;
+
+        if (atStart || atEnd) {
+            setDragOffset(diff * 0.3);
+        } else {
+            setDragOffset(diff);
+        }
+    };
+
+    const handleMouseUp = () => {
+        if (!isDragging) return;
+        handleTouchEnd();
+    };
+
+    const handleMouseLeave = () => {
+        if (isDragging) {
+            handleTouchEnd();
         }
     };
 
@@ -118,17 +165,16 @@ export const Gallery = ({ eventId }: GalleryProps) => {
             setIsDeleting(false);
             if (success) {
                 // Navigate to next or previous photo if available
-                const currentIndex = getCurrentPhotoIndex();
-                if (photos.length > 1) {
-                    if (currentIndex < photos.length - 1) {
-                        setSelectedPhoto(photos[currentIndex + 1]);
-                    } else if (currentIndex > 0) {
-                        setSelectedPhoto(photos[currentIndex - 1]);
+                if (photos.length > 1 && selectedPhotoIndex !== null) {
+                    if (selectedPhotoIndex < photos.length - 1) {
+                        // Stay at same index (next photo will slide in)
+                    } else if (selectedPhotoIndex > 0) {
+                        setSelectedPhotoIndex(selectedPhotoIndex - 1);
                     } else {
-                        setSelectedPhoto(null);
+                        closeModal();
                     }
                 } else {
-                    setSelectedPhoto(null);
+                    closeModal();
                 }
             } else {
                 alert('Error al eliminar la foto');
@@ -146,9 +192,8 @@ export const Gallery = ({ eventId }: GalleryProps) => {
         );
     }
 
-    const currentIndex = getCurrentPhotoIndex();
-    const hasPrevious = currentIndex > 0;
-    const hasNext = currentIndex < photos.length - 1;
+    const hasPrevious = selectedPhotoIndex !== null && selectedPhotoIndex > 0;
+    const hasNext = selectedPhotoIndex !== null && selectedPhotoIndex < photos.length - 1;
 
     return (
         <div className="gallery-container">
@@ -158,26 +203,31 @@ export const Gallery = ({ eventId }: GalleryProps) => {
             </div>
 
             <div className={`gallery-grid ${newPhotoAnimation ? 'new-photo' : ''}`}>
-                {photos.map((photo) => (
+                {photos.map((photo, index) => (
                     <PhotoCard
                         key={photo.id}
                         photo={photo}
-                        onClick={() => setSelectedPhoto(photo)}
+                        onClick={() => setSelectedPhotoIndex(index)}
                     />
                 ))}
             </div>
 
-            {/* Photo Modal */}
-            {selectedPhoto && (
-                <div className="photo-modal" onClick={() => setSelectedPhoto(null)}>
+            {/* Photo Modal with Slide Animation */}
+            {selectedPhoto && selectedPhotoIndex !== null && (
+                <div className="photo-modal" onClick={closeModal}>
                     <div
+                        ref={containerRef}
                         className="modal-content"
                         onClick={e => e.stopPropagation()}
-                        onTouchStart={onTouchStart}
-                        onTouchMove={onTouchMove}
-                        onTouchEnd={onTouchEnd}
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseLeave}
                     >
-                        <button className="close-btn" onClick={() => setSelectedPhoto(null)}>
+                        <button className="close-btn" onClick={closeModal}>
                             ✕
                         </button>
 
@@ -185,7 +235,7 @@ export const Gallery = ({ eventId }: GalleryProps) => {
                         {hasPrevious && (
                             <button
                                 className="nav-arrow nav-arrow-left"
-                                onClick={navigatePrevious}
+                                onClick={(e) => { e.stopPropagation(); navigatePrevious(); }}
                                 aria-label="Foto anterior"
                             >
                                 ‹
@@ -194,22 +244,38 @@ export const Gallery = ({ eventId }: GalleryProps) => {
                         {hasNext && (
                             <button
                                 className="nav-arrow nav-arrow-right"
-                                onClick={navigateNext}
+                                onClick={(e) => { e.stopPropagation(); navigateNext(); }}
                                 aria-label="Siguiente foto"
                             >
                                 ›
                             </button>
                         )}
 
-                        <img
-                            src={selectedPhoto.imageUrl}
-                            alt={`Foto de ${selectedPhoto.author}`}
-                            className="modal-image"
-                        />
+                        {/* Image Slider Container */}
+                        <div className="image-slider">
+                            <div
+                                className="slider-track"
+                                style={{
+                                    transform: `translateX(calc(-${selectedPhotoIndex * 100}% + ${dragOffset}px))`,
+                                    transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)'
+                                }}
+                            >
+                                {photos.map((photo) => (
+                                    <div key={photo.id} className="slide">
+                                        <img
+                                            src={photo.imageUrl}
+                                            alt={`Foto de ${photo.author}`}
+                                            className="modal-image"
+                                            draggable={false}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
 
                         {/* Photo counter */}
                         <div className="photo-counter">
-                            {currentIndex + 1} / {photos.length}
+                            {selectedPhotoIndex + 1} / {photos.length}
                         </div>
 
                         <div className="modal-info">

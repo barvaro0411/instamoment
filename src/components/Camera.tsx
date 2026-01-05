@@ -30,39 +30,48 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
 
     const handleNativeCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            setIsRendering(true);
+        if (!file) return;
 
-            try {
-                // Use createImageBitmap to handle EXIF orientation properly
-                const blob = file;
-                const imageBitmap = await window.createImageBitmap(blob, {
-                    imageOrientation: 'from-image' // Respects EXIF orientation
-                });
+        setIsRendering(true);
 
-                // Create canvas with correct dimensions
-                const canvas = document.createElement('canvas');
-                canvas.width = imageBitmap.width;
-                canvas.height = imageBitmap.height;
+        try {
+            // Create an image from the file to get the correctly oriented version
+            const url = URL.createObjectURL(file);
+            const img = new Image();
 
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    ctx.drawImage(imageBitmap, 0, 0);
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-                    setPreviewImage(dataUrl);
-                }
-            } catch (error) {
-                // Fallback to simple FileReader if createImageBitmap fails
-                console.warn('createImageBitmap failed, using fallback:', error);
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setPreviewImage(reader.result as string);
-                };
-                reader.readAsDataURL(file);
-            } finally {
-                setIsRendering(false);
+            await new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = reject;
+                img.src = url;
+            });
+
+            // Create canvas and draw the image
+            // Modern browsers auto-correct EXIF orientation when drawing to canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                // Draw the image - browser handles EXIF orientation
+                ctx.drawImage(img, 0, 0);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                setPreviewImage(dataUrl);
             }
+
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Image load error:', error);
+            // Fallback to direct FileReader
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreviewImage(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        } finally {
+            setIsRendering(false);
         }
+
         // Reset input
         e.target.value = '';
     };
