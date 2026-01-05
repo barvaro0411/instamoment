@@ -35,7 +35,7 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
         setIsRendering(true);
 
         try {
-            // Create an image from the file to get the correctly oriented version
+            // Create an image from the file
             const url = URL.createObjectURL(file);
             const img = new Image();
 
@@ -46,15 +46,20 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
             });
 
             // Create canvas and draw the image
-            // Modern browsers auto-correct EXIF orientation when drawing to canvas
             const canvas = document.createElement('canvas');
             canvas.width = img.naturalWidth;
             canvas.height = img.naturalHeight;
 
             const ctx = canvas.getContext('2d');
             if (ctx) {
-                // Draw the image - browser handles EXIF orientation
+                // Apply horizontal flip (mirror) for front camera selfies
+                // This makes the saved image match what the user saw in the preview
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+
+                // Draw the image (browser handles EXIF orientation)
                 ctx.drawImage(img, 0, 0);
+
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
                 setPreviewImage(dataUrl);
             }
