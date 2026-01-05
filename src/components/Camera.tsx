@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react';
 import { useFirebase } from '../hooks/useFirebase';
 import { FilterSelector } from './FilterSelector';
-import { VintageFilter, vintageFilters } from '../lib/filters';
+import { type VintageFilter, vintageFilters } from '../lib/filters';
 import { renderFIMOToCanvas } from '../lib/fimoEngine';
+import { FIMOCanvasPreview } from './FIMOCanvasPreview';
 import './Camera.css';
 
 interface CameraProps {
@@ -27,16 +28,40 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
     // Auth context
     const authorName = localStorage.getItem('guestNickname') || 'Guest';
 
-    const handleNativeCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleNativeCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setIsRendering(true); // Temporarily show loading while reading
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreviewImage(reader.result as string);
+            setIsRendering(true);
+
+            try {
+                // Use createImageBitmap to handle EXIF orientation properly
+                const blob = file;
+                const imageBitmap = await window.createImageBitmap(blob, {
+                    imageOrientation: 'from-image' // Respects EXIF orientation
+                });
+
+                // Create canvas with correct dimensions
+                const canvas = document.createElement('canvas');
+                canvas.width = imageBitmap.width;
+                canvas.height = imageBitmap.height;
+
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(imageBitmap, 0, 0);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+                    setPreviewImage(dataUrl);
+                }
+            } catch (error) {
+                // Fallback to simple FileReader if createImageBitmap fails
+                console.warn('createImageBitmap failed, using fallback:', error);
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setPreviewImage(reader.result as string);
+                };
+                reader.readAsDataURL(file);
+            } finally {
                 setIsRendering(false);
-            };
-            reader.readAsDataURL(file);
+            }
         }
         // Reset input
         e.target.value = '';
@@ -109,40 +134,26 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
 
     // --- RENDER ---
 
+    // Prepare values for preview and save
+    const now = new Date();
+    const yy = now.getFullYear().toString().slice(-2);
+    const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+    const dd = now.getDate().toString().padStart(2, '0');
+    const timestamp = `${yy} ${mm} ${dd}`;
+    const caption = selectedFilter.id === 'aesthetic400' ? 'FIMO' : undefined;
+
     // VIEW 1: PREVIEW / EDIT MODE
     if (previewImage) {
         return (
             <div className="camera-container edit-mode">
                 <div className="preview-container">
-                    <img
+                    <FIMOCanvasPreview
                         src={previewImage}
-                        alt="Vista previa"
-                        style={{
-                            filter: selectedFilter.cssFilter,
-                            // Basic preview styling, full accumulation logic is in canvas
-                        }}
+                        filterId={selectedFilter.id as any}
+                        timestamp={timestamp}
+                        caption={caption}
                         className="preview-image"
                     />
-                    {/* Warm Overlay Preview */}
-                    {selectedFilter.warmOverlay && (
-                        <div style={{
-                            position: 'absolute',
-                            inset: 0,
-                            backgroundColor: selectedFilter.warmOverlay.color,
-                            mixBlendMode: selectedFilter.warmOverlay.blendMode as any,
-                            opacity: selectedFilter.warmOverlay.opacity,
-                            pointerEvents: 'none'
-                        }} />
-                    )}
-                    {/* Vignette Preview */}
-                    {selectedFilter.vignetteOverlay && (
-                        <div style={{
-                            position: 'absolute',
-                            inset: 0,
-                            background: selectedFilter.vignetteOverlay,
-                            pointerEvents: 'none'
-                        }} />
-                    )}
                 </div>
 
                 {/* Filter Selector in Edit Mode */}
@@ -212,7 +223,7 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
             />
 
             {/* Loading Overlay */}
-            {isProcessing && (
+            {isBusy && (
                 <div className="loading-overlay">
                     <div className="loading-spinner"></div>
                     <span>Procesando...</span>

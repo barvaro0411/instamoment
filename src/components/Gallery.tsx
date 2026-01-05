@@ -13,6 +13,10 @@ export const Gallery = ({ eventId }: GalleryProps) => {
     const [newPhotoAnimation, setNewPhotoAnimation] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // Touch/swipe state
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
     useEffect(() => {
         const unsubscribe = subscribeToPhotos(eventId);
         return () => unsubscribe();
@@ -26,6 +30,69 @@ export const Gallery = ({ eventId }: GalleryProps) => {
             return () => clearTimeout(timer);
         }
     }, [photos.length]);
+
+    // Keyboard navigation
+    useEffect(() => {
+        if (!selectedPhoto) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowLeft') {
+                navigatePrevious();
+            } else if (e.key === 'ArrowRight') {
+                navigateNext();
+            } else if (e.key === 'Escape') {
+                setSelectedPhoto(null);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedPhoto, photos]);
+
+    const getCurrentPhotoIndex = () => {
+        if (!selectedPhoto) return -1;
+        return photos.findIndex(p => p.id === selectedPhoto.id);
+    };
+
+    const navigateNext = () => {
+        const currentIndex = getCurrentPhotoIndex();
+        if (currentIndex < photos.length - 1) {
+            setSelectedPhoto(photos[currentIndex + 1]);
+        }
+    };
+
+    const navigatePrevious = () => {
+        const currentIndex = getCurrentPhotoIndex();
+        if (currentIndex > 0) {
+            setSelectedPhoto(photos[currentIndex - 1]);
+        }
+    };
+
+    // Touch handlers
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe) {
+            navigateNext();
+        } else if (isRightSwipe) {
+            navigatePrevious();
+        }
+    };
 
     const handleDownload = async (photo: Photo) => {
         try {
@@ -50,7 +117,19 @@ export const Gallery = ({ eventId }: GalleryProps) => {
             const success = await deletePhoto(photo.id, eventId, photo.imageUrl);
             setIsDeleting(false);
             if (success) {
-                setSelectedPhoto(null);
+                // Navigate to next or previous photo if available
+                const currentIndex = getCurrentPhotoIndex();
+                if (photos.length > 1) {
+                    if (currentIndex < photos.length - 1) {
+                        setSelectedPhoto(photos[currentIndex + 1]);
+                    } else if (currentIndex > 0) {
+                        setSelectedPhoto(photos[currentIndex - 1]);
+                    } else {
+                        setSelectedPhoto(null);
+                    }
+                } else {
+                    setSelectedPhoto(null);
+                }
             } else {
                 alert('Error al eliminar la foto');
             }
@@ -66,6 +145,10 @@ export const Gallery = ({ eventId }: GalleryProps) => {
             </div>
         );
     }
+
+    const currentIndex = getCurrentPhotoIndex();
+    const hasPrevious = currentIndex > 0;
+    const hasNext = currentIndex < photos.length - 1;
 
     return (
         <div className="gallery-container">
@@ -87,15 +170,48 @@ export const Gallery = ({ eventId }: GalleryProps) => {
             {/* Photo Modal */}
             {selectedPhoto && (
                 <div className="photo-modal" onClick={() => setSelectedPhoto(null)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                    <div
+                        className="modal-content"
+                        onClick={e => e.stopPropagation()}
+                        onTouchStart={onTouchStart}
+                        onTouchMove={onTouchMove}
+                        onTouchEnd={onTouchEnd}
+                    >
                         <button className="close-btn" onClick={() => setSelectedPhoto(null)}>
                             ✕
                         </button>
+
+                        {/* Navigation Arrows */}
+                        {hasPrevious && (
+                            <button
+                                className="nav-arrow nav-arrow-left"
+                                onClick={navigatePrevious}
+                                aria-label="Foto anterior"
+                            >
+                                ‹
+                            </button>
+                        )}
+                        {hasNext && (
+                            <button
+                                className="nav-arrow nav-arrow-right"
+                                onClick={navigateNext}
+                                aria-label="Siguiente foto"
+                            >
+                                ›
+                            </button>
+                        )}
+
                         <img
                             src={selectedPhoto.imageUrl}
                             alt={`Foto de ${selectedPhoto.author}`}
                             className="modal-image"
                         />
+
+                        {/* Photo counter */}
+                        <div className="photo-counter">
+                            {currentIndex + 1} / {photos.length}
+                        </div>
+
                         <div className="modal-info">
                             <div className="modal-author">
                                 <span className="label">Capturada por</span>

@@ -75,6 +75,7 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
+    touch-action: pan-y; /* Allow vertical scroll but enable horizontal swipe */
 }
 
 .close-btn {
@@ -93,12 +94,83 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background 0.2s;
+}
+
+.close-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+/* Navigation Arrows */
+.nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 32px;
+    font-weight: 300;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.nav-arrow:hover {
+    background: rgba(0, 0, 0, 0.7);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.nav-arrow:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.nav-arrow-left {
+    left: 20px;
+}
+
+.nav-arrow-right {
+    right: 20px;
+}
+
+/* Hide arrows on small screens to avoid clutter */
+@media (max-width: 768px) {
+    .nav-arrow {
+        width: 40px;
+        height: 40px;
+        font-size: 24px;
+        opacity: 0.7;
+    }
+}
+
+/* Photo Counter */
+.photo-counter {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 10;
+    backdrop-filter: blur(10px);
 }
 
 .modal-image {
     width: 100%;
     max-height: 80vh;
     object-fit: contain;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
 .modal-info {
@@ -126,6 +198,11 @@
     color: white;
     /* iOS style blue usually, but white for dark theme */
     cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.action-icon-btn:hover {
+    transform: scale(1.1);
 }
 
 .download-btn {
@@ -133,4 +210,9 @@
     border: none;
     font-size: 1.5rem;
     cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.download-btn:hover {
+    transform: scale(1.05);
 }
