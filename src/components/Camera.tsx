@@ -52,8 +52,11 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
 
             const ctx = canvas.getContext('2d');
             if (ctx) {
-                // Draw the image exactly as captured (no transformations)
-                // Browser handles EXIF orientation automatically
+                // Apply horizontal mirror to match what user saw in camera preview
+                // Front cameras show mirrored view, but save unmirrored
+                // This flip makes the saved image match the camera preview
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
                 ctx.drawImage(img, 0, 0);
 
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
