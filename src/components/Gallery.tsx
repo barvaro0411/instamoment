@@ -142,40 +142,35 @@ export const Gallery = ({ eventId }: GalleryProps) => {
     };
 
     const handleDownload = async (photo: Photo) => {
+        // On iOS Safari, programmatic download doesn't work
+        // Best approach: open image in new tab, user can long-press to save
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+        if (isIOS) {
+            // Open image in new tab - user can long-press to save
+            window.open(photo.imageUrl, '_blank');
+            alert('Mantén presionada la imagen para guardarla en tu galería 📱');
+            return;
+        }
+
+        // Desktop/Android: try normal download
         try {
             const response = await fetch(photo.imageUrl);
             const blob = await response.blob();
-            const fileName = `instamoment_${photo.author}_${Date.now()}.jpg`;
-
-            // Try Web Share API first (works great on iOS)
-            if (navigator.share && navigator.canShare) {
-                const file = new File([blob], fileName, { type: 'image/jpeg' });
-                const shareData = { files: [file] };
-
-                if (navigator.canShare(shareData)) {
-                    await navigator.share(shareData);
-                    return;
-                }
-            }
-
-            // Fallback: Create download link
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = fileName;
+            a.download = `instamoment_${photo.author}_${Date.now()}.jpg`;
             a.style.display = 'none';
             document.body.appendChild(a);
             a.click();
 
-            // Cleanup after a delay
             setTimeout(() => {
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
             }, 100);
-
         } catch (error) {
             console.error('Download error:', error);
-            // Last resort: open image in new tab
             window.open(photo.imageUrl, '_blank');
         }
     };
