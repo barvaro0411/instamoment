@@ -27,8 +27,8 @@ export const Camera = ({ eventId, onUploadSuccess }: CameraProps) => {
     // Refs
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    // Auth context
-    const authorName = localStorage.getItem('guestNickname') || 'Guest';
+    // Auth context - get name from sessionStorage with eventId
+    const authorName = sessionStorage.getItem(`instamoment_${eventId}_name`) || 'Anónimo';
 
     const handleNativeCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
