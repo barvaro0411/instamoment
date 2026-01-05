@@ -92,67 +92,100 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    padding-bottom: 20px;
-    background: var(--bg-secondary);
+    padding: 16px 0 20px;
+    background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
     border-top: 1px solid var(--glass-border);
 }
 
-/* Flip Button */
+/* Flip Button - Premium */
 .flip-btn {
     align-self: center;
-    background: transparent;
-    border: 1px solid var(--text-secondary);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
     color: var(--text-primary);
-    padding: 8px 20px;
-    border-radius: 20px;
+    padding: 10px 24px;
+    border-radius: var(--radius-full);
     font-size: 0.9rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
-    margin-top: 10px;
+    transition: all var(--transition-normal);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .flip-btn:hover {
-    background: var(--glass-bg);
-    border-color: var(--text-primary);
+    background: var(--glass-bg-strong);
+    border-color: var(--text-secondary);
+    transform: scale(1.02);
+}
+
+.flip-btn:active {
+    transform: scale(0.98);
 }
 
 .flip-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
 }
 
 .action-buttons {
     display: flex;
-    gap: 16px;
+    gap: 12px;
     padding: 0 16px;
 }
 
 .action-buttons button {
     flex: 1;
-    padding: 16px;
-    border-radius: 12px;
+    padding: 16px 20px;
+    border-radius: var(--radius-lg);
     border: none;
     font-family: var(--font-sans);
-    font-weight: 500;
-    font-size: 1rem;
+    font-weight: 600;
+    font-size: 0.95rem;
     cursor: pointer;
-    transition: transform 0.1s;
+    transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
 }
 
 .action-buttons button:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
 }
 
+/* Discard Button */
 .retake-btn {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--glass-bg);
     color: var(--text-secondary);
     border: 1px solid var(--glass-border) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
+.retake-btn:hover {
+    background: var(--error-glow);
+    border-color: var(--error) !important;
+    color: var(--error);
+}
+
+/* Save Button - Premium Green Gradient */
 .save-btn {
-    background: var(--text-primary);
-    color: var(--bg-primary);
-    font-weight: 700;
+    background: linear-gradient(135deg, var(--success) 0%, #2db44d 100%);
+    color: white;
+    box-shadow: 0 4px 15px var(--success-glow);
+    border: none !important;
+}
+
+.save-btn:hover {
+    box-shadow: 0 6px 25px rgba(52, 199, 89, 0.35);
+    transform: translateY(-1px);
+}
+
+.save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 
