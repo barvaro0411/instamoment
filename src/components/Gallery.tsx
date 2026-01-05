@@ -145,16 +145,38 @@ export const Gallery = ({ eventId }: GalleryProps) => {
         try {
             const response = await fetch(photo.imageUrl);
             const blob = await response.blob();
+            const fileName = `instamoment_${photo.author}_${Date.now()}.jpg`;
+
+            // Try Web Share API first (works great on iOS)
+            if (navigator.share && navigator.canShare) {
+                const file = new File([blob], fileName, { type: 'image/jpeg' });
+                const shareData = { files: [file] };
+
+                if (navigator.canShare(shareData)) {
+                    await navigator.share(shareData);
+                    return;
+                }
+            }
+
+            // Fallback: Create download link
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `instamoment_${photo.author}_${Date.now()}.jpg`;
+            a.download = fileName;
+            a.style.display = 'none';
             document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
+
+            // Cleanup after a delay
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+
         } catch (error) {
             console.error('Download error:', error);
+            // Last resort: open image in new tab
+            window.open(photo.imageUrl, '_blank');
         }
     };
 
